@@ -70,6 +70,12 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
         } catch (e: java.util.concurrent.CancellationException) {
             throw IOException("Steam closed the connection before sending the achievements (${closeReason()})", e)
         }
+        /* A game with no stats on Steam is answered Fail (Alabaster Dawn, 2026-10-21): no achievements,
+         * so whatever was asked for is not this game's, and is dropped rather than retried forever. */
+        if (got.result == EResult.Fail) {
+            Log.i(TAG, "achievements: Steam has no stats for app $appId (${got.result})")
+            return State(0, emptyMap(), emptyMap(), emptyMap(), "no stats for this game (${got.result})")
+        }
         if (got.result != EResult.OK) throw IOException("Steam would not send the achievements (${got.result})")
         val schema = got.schemaKeyValues
         val titles = LinkedHashMap<String, String>()
