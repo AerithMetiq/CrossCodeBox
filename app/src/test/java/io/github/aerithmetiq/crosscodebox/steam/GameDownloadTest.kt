@@ -49,6 +49,14 @@ class GameDownloadTest {
     }
 
     @Test
+    fun theModsFolderIsKeptThroughADownload() {
+        val root = GameDownload.WEB_ROOT
+        assertEquals(true, GameDownload.kept("$root/mods/my-mod/ccmod.json"))
+        assertEquals(false, GameDownload.kept("$root/modsx/a"))
+        assertEquals(false, GameDownload.kept("$root/data/a.json"))
+    }
+
+    @Test
     fun aLaterDepotsFileReplacesAnEarlierOnesAtTheSamePath() {
         val (merged, replaced) = GameDownload.merge(
             listOf(

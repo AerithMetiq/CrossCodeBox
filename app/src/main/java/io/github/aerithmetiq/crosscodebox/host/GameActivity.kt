@@ -131,6 +131,9 @@ class GameActivity : Activity() {
     @Volatile
     private var previousRecordCarried = false
 
+    /** CrossCodeBox: whether this start goes through CCLoader3 with mods (see Mods). */
+    @Volatile private var mods = false
+
     /** CrossCodeBox: the vibrator, for the game's screen shakes. */
     private val shake by lazy { ShakeVibrator(this) }
 
@@ -229,6 +232,11 @@ class GameActivity : Activity() {
         diag.line("indexing $gameRoot")
         val started = System.currentTimeMillis()
         Thread({
+            /* CrossCodeBox: with mods on, CCLoader3 is put in the game folder before it is read. */
+            if (prefs.getBoolean(GameSettings.KEY_MODS, GameSettings.MODS_DEFAULT)) {
+                mods = io.github.aerithmetiq.crosscodebox.Mods.ensureLoader(applicationContext, gameRoot)
+                diag.line(if (mods) "mods: on, through CCLoader3" else "mods: on, but CCLoader3 could not be put in place; starting without")
+            }
             val built = try {
                 GameTree.index(gameRoot)
             } catch (e: Exception) {
@@ -294,7 +302,9 @@ class GameActivity : Activity() {
         if (resetVideo && param != null) query.add("$param=1")
         /* CrossCodeBox: a Resolution chosen in the launcher's settings (see [GameSettings]). */
         if (resolution in GameSettings.RESOLUTIONS.indices) query.add("${GameSettings.RESOLUTION_PARAM}=$resolution")
-        return if (query.isEmpty()) p.entryUrl else p.entryUrl + "?" + query.joinToString("&")
+        /* CrossCodeBox: with mods, CCLoader3's page starts the game. */
+        val entry = if (mods) "${GameProfile.ORIGIN}/${io.github.aerithmetiq.crosscodebox.Mods.ENTRY}" else p.entryUrl
+        return if (query.isEmpty()) entry else entry + "?" + query.joinToString("&")
     }
 
     private fun launchWebView() {
@@ -318,7 +328,20 @@ class GameActivity : Activity() {
         assetHandler = handler
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/game/", handler)
+            /* CrossCodeBox, with mods: CCLoader3 asks for the game's files from the site root
+             * (`/assets/…`, its desktop layout), so the game folder is served there too. */
+            .apply { if (mods) addPathHandler("/", handler) }
             .build()
+        /* CrossCodeBox, with mods: CCLoader3 registers a service worker (it serves the mods' files);
+         * its script and the requests it makes come here, not through the WebViewClient. */
+        if (mods && Build.VERSION.SDK_INT >= 24) {
+            android.webkit.ServiceWorkerController.getInstance().setServiceWorkerClient(
+                object : android.webkit.ServiceWorkerClient() {
+                    override fun shouldInterceptRequest(request: WebResourceRequest): WebResourceResponse? =
+                        loader.shouldInterceptRequest(request.url)
+                }
+            )
+        }
         val view = WebView(this)
         view.settings.apply {
             javaScriptEnabled = true
@@ -495,7 +518,7 @@ class GameActivity : Activity() {
         setContentView(frame)
         view.requestFocus()
         setStatus("Loading the game…")
-        diag.line("loading ${selected.entryUrl}")
+        diag.line("loading ${if (mods) "${GameProfile.ORIGIN}/${io.github.aerithmetiq.crosscodebox.Mods.ENTRY} (mods)" else selected.entryUrl}")
         webViewStartedAt = monotonicMs()
         watchdog.removeCallbacksAndMessages(null)
         watchdog.postDelayed(watchdogTick, WATCHDOG_TICK_MS)

@@ -192,6 +192,7 @@ class SettingsActivity : AppCompatActivity() {
          * has its own display options in the game. */
         page.addView(Screens.row(ctx, 8, fps, align))
         gameFiles(page)
+        mods(page, prefs)
         /* Controller focus on the first control once the page is laid out. */
         first.post { first.requestFocus() }
     }
@@ -245,6 +246,80 @@ class SettingsActivity : AppCompatActivity() {
                 .show()
         }
         page.addView(Screens.row(ctx, 8, verify, delete))
+    }
+
+    /* CrossCodeBox: the mods section, see [Mods]. */
+    private var modsStatus: android.widget.TextView? = null
+
+    private val pickMod = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@registerForActivityResult
+        val name = contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+            ?.use { c -> if (c.moveToFirst()) c.getString(0) else null } ?: "mod.zip"
+        modsStatus?.text = "Adding $name…"
+        Thread({
+            val result = runCatching { Mods.install(this, uri, name) }
+            runOnUiThread {
+                modsStatus?.text = result.fold(
+                    { "Added $it. It loads the next time the game starts with mods on. ${modsCount()}" },
+                    { "Could not add $name: ${it.message}" },
+                )
+            }
+        }, "mod-install").start()
+    }
+
+    private fun modsCount(): String = Mods.list(this).size.let { n ->
+        if (n == 0) "No mods are installed." else "$n ${if (n == 1) "mod is" else "mods are"} installed."
+    }
+
+    private fun mods(page: LinearLayout, prefs: SharedPreferences) {
+        val ctx = this
+        page.addView(Screens.body(ctx, "Mods", topDp = 24).apply { textSize = 16f; setTextColor(getColor(R.color.text_primary)) })
+        page.addView(CheckBox(ctx).apply {
+            text = "Start the game with mods (CCLoader3)"
+            textSize = 15f
+            setTextColor(getColor(R.color.text_primary))
+            buttonTintList = ColorStateList.valueOf(getColor(R.color.accent))
+            isChecked = prefs.getBoolean(GameSettings.KEY_MODS, GameSettings.MODS_DEFAULT)
+            setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean(GameSettings.KEY_MODS, on).commit() }
+        })
+        page.addView(
+            Screens.body(
+                ctx,
+                "Off by default. On: the game starts through CCLoader3, the community mod loader, which loads " +
+                    "the mods you add here (.ccmod or .zip files). The game's own files are not changed, and " +
+                    "\"Verify game files\" leaves your mods alone. Mods can change your saves, which then sync " +
+                    "to Steam Cloud like any other; keep the backups in mind. Mods are made by other people: " +
+                    "add only ones you trust. CCLoader3 adds a Mods tab to the game's options to switch mods.",
+                topDp = 0,
+            )
+        )
+        val status = Screens.body(ctx, modsCount())
+        modsStatus = status
+        page.addView(status)
+        val add = Screens.outlined(ctx, "Add a mod") { pickMod.launch(arrayOf("*/*")) }
+        val remove = Screens.outlined(ctx, "Remove a mod") {
+            val names = Mods.list(ctx)
+            if (names.isEmpty()) {
+                status.text = "No mods are installed."
+                return@outlined
+            }
+            AlertDialog.Builder(ctx)
+                .setTitle("Remove which mod?")
+                .setItems(names.toTypedArray()) { _, which ->
+                    val name = names[which]
+                    AlertDialog.Builder(ctx)
+                        .setTitle("Remove $name?")
+                        .setMessage("Its files are deleted from this device. Your saves stay.")
+                        .setPositiveButton("Remove") { _, _ ->
+                            status.text = if (Mods.remove(ctx, name)) "Removed $name. ${modsCount()}" else "Could not remove $name."
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
+        }
+        page.addView(Screens.row(ctx, 8, add, remove))
     }
 
     private fun showNotices() {

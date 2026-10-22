@@ -44,6 +44,9 @@ non-commercial project, not affiliated with, sponsored by or endorsed by Radical
   from alabaster-android): Apache License 2.0, © Google LLC. https://fonts.google.com/icons
 * **AndroidX** (AppCompat, Core, WebKit) and **Material Components for Android**: Apache License 2.0, © The
   Android Open Source Project / Google LLC.
+* **CCLoader3** (`app/src/main/assets/ccloader3/`, release v3.5.2-alpha unchanged,
+  https://github.com/CCDirectLink/CCLoader3): MIT License, © 2020 Dmytro Meleshko; its `LICENSE` file
+  is kept beside it. The mod loader that starts CrossCode with mods when they are turned on.
 * **Gradle wrapper** (`gradle/wrapper/`, `gradlew*`, used to build): Apache License 2.0, © Gradle, Inc.
 
 Apache License 2.0 text: https://www.apache.org/licenses/LICENSE-2.0

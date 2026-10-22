@@ -67,6 +67,8 @@ belongs in the other. What differs here, deliberately:
   the "STEAM CLOUD LAUNCHER" line in cyan, and a green dot before "Signed in as" while Steam answers.
   Both pictures are drawn without smoothing. The original icon stays.
 - The diagnostics probe CrossCode only.
+- Mods (`Mods.kt`, CCLoader3): CrossCode only; Alabaster Dawn has no mod loader. `PARITY.md` lists
+  every feature and where it stands in each app.
 
 ## Status
 
@@ -185,6 +187,50 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   Now the change is sent as is first, and only if Steam refuses it is it sent again with the session
   running the game (`SteamSession.runningGame`). JavaSteam's 10 s job timeout also cancelled stats
   reads that Steam answered slowly; the read's job now has 30 s.
+- **While the playing status holds the game, achievements wait** (2026-10-21): with the game running
+  and `PlayingService` showing it "in game", every stats read from the achievements session was cut
+  off (Steam disconnected it) a moment after it was sent; from the launcher, with no game running, the
+  same read worked. `AchievementService` now leaves the queue while `PlayingService.holdsGame`, and the
+  launcher's `onResume` (which stops the playing status first) sends it. With the playing status off,
+  achievements still go up during play.
+- **JavaSteam handlers must be added before connecting**: `SteamAchievements` used to add its reply
+  handler to a connected client, and JavaSteam's connection thread, which walks the handler map without
+  a lock, crashed the launcher with a `ConcurrentModificationException` (Nova, 2026-10-21).
+  `SteamSession` now adds one router at construction (`onMessage`), and the reply catcher listens
+  through it.
+- A game with no stats on Steam answers the stats request with `Fail` (seen for Alabaster Dawn);
+  `SteamAchievements.read` takes that as "no achievements", so the names are dropped, not retried.
+
+## Mods (CCLoader3, 2026-10-21)
+
+- **Off by default** (`GameSettings.KEY_MODS`, Settings → Mods). On: `GameActivity` has
+  `Mods.ensureLoader` copy CCLoader3 (MIT, shipped unchanged in `assets/ccloader3/`, release
+  v3.5.2-alpha) into the game folder's `ccloader3/` (again only when its `metadata.json` differs) before
+  the folder is indexed, and loads `https://appassets.androidplatform.net/ccloader3/main.html` instead
+  of the game's page. CCLoader3 then reads the mods in `assets/mods/` and starts the game itself.
+- What CCLoader3 needed from the host, each found on the Nova: the game folder served at the site
+  root as well as `/game/` (it builds `cwd`-relative URLs as `/assets/…`); a `ServiceWorkerClient`
+  routed to the same asset loader (it registers `dist-ccmod-service-worker.js` even on the desktop
+  path, and reloads the page once it is active); `fs.promises.readdir` and `access`; `require("util")`
+  with `format` (its console wrapper); and `./` dropped from paths (`GameIndex.clean`). Both host
+  pieces are only set up while mods are on. It takes its desktop path because the shim defines `nw`.
+- "Add a mod" (Settings) takes a `.ccmod` (copied as it is; CCLoader3 reads it through the service
+  worker) or a `.zip` (unpacked into a folder of its own; the manifest may sit at the top or in one
+  folder; entries with `..` are skipped). "Remove a mod" deletes one. The downloader leaves
+  `assets/mods/` alone (`GameDownload.KEPT`), checked by a verify with two mods installed.
+- Checked on the Nova (2026-10-21): a folder mod and a zip-installed mod both loaded
+  (`modloader.loadedMods`: ccloader-runtime, hello-test, hello-zip; their `poststart` scripts ran);
+  the title screen shows "CCLOADER V3.5.2-ALPHA". Not tried: a real community mod, a `.ccmod` file,
+  CCLoader3's in-game Mods tab. CCModManager (GPL-3.0, not shipped) installs mods by writing files,
+  which the shim's `fs` refuses outside the saves folder, so it would not work as is.
+- Mods change saves like the game does, and those sync to Steam Cloud; achievements stay on.
+
+## The extension double load (fixed 2026-10-21)
+
+The shim's `fs.readdir` called back at once, inside the game's resource loader
+(`ig.ExtensionList.loadExtensionsNWJS`), which then loaded every extension twice. Silent for the free
+extensions; once the DLC brought `ninja-skin`, the skin library threw "Tried to register skin of id
+'ninja' twice" at every boot. The callback now comes later, as Node's does; one load each, no error.
 
 ## Build and test
 

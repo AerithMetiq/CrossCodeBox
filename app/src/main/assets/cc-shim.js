@@ -200,6 +200,12 @@
         },
         unlink: function (p) { return rmRaw(p) ? Promise.resolve() : Promise.reject(enoent(p)); },
         mkdir: function (p) { return mkdirRaw(p) ? Promise.resolve() : Promise.reject(enoent(p)); },
+        /* CrossCodeBox: used by the CCLoader3 mod loader (its desktop file layer). */
+        readdir: function (p, opts) {
+            var l = readdirRaw(p, opts);
+            return l ? Promise.resolve(l) : Promise.reject(enoent(p));
+        },
+        access: function (p) { return fsExistsRaw(p) === true ? Promise.resolve() : Promise.reject(enoent(p)); },
         copyFile: function (a, b) { return copyRaw(a, b) ? Promise.resolve() : Promise.reject(enoent(a)); }
     };
 
@@ -218,11 +224,15 @@
             if (!l) throw enoent(p);
             return l;
         },
+        /* CrossCodeBox: the callback comes later, as Node's always does. Called at once, inside the
+         * game's resource loader (ig.ExtensionList.loadExtensionsNWJS), it added the extensions to the
+         * loader's list while the loader was walking it, and each extension was loaded twice: the
+         * ninja skin then threw "Tried to register skin of id 'ninja' twice" at every boot. */
         readdir: function (p, opts, cb) {
             if (typeof opts === "function") { cb = opts; opts = null; }
             if (typeof cb !== "function") return;
             var l = readdirRaw(p, opts);
-            if (l) cb(null, l); else cb(enoent(p));
+            setTimeout(function () { if (l) cb(null, l); else cb(enoent(p)); }, 0);
         },
         readFileSync: function (p) {
             var data = call(function (b) { return b.fsReadFile(String(p)); }, null);
@@ -434,6 +444,17 @@
                 runInContext: noop, runInNewContext: noop, isContext: function () { return true; }
             };
             case "nw.gui": return nwGui;
+            /* CrossCodeBox: CCLoader3 formats its log lines with util.format. */
+            case "util": return {
+                format: function () {
+                    return Array.prototype.map.call(arguments, function (a) {
+                        if (typeof a === "string") return a;
+                        if (a instanceof Error) return a.stack || String(a);
+                        try { return JSON.stringify(a); } catch (e) { return String(a); }
+                    }).join(" ");
+                },
+                inspect: function (a) { try { return JSON.stringify(a); } catch (e) { return String(a); } }
+            };
             default:
                 /* The extension loader asks for "./modules/greenworks-<nwjsVersion>/greenworks". */
                 if (name.indexOf("./modules/") === 0 || name.indexOf("greenworks") === 0) return greenworks;

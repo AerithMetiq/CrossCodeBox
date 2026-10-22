@@ -49,6 +49,9 @@ title screen on a phone.
   a fresh tap of L1/L2, vibration when the screen shakes (following the game's Rumble Strength), the
   controls stepping aside in cutscenes, conversations and Direct Links, and a transparency slider.
 - **Steam achievements**, unlocked as the game awards them (on by default; Settings → Steam).
+- **Mods** (optional, off by default): CrossCode starts through
+  [CCLoader3](https://github.com/CCDirectLink/CCLoader3), the community mod loader, with the mods you
+  add in Settings → Mods (`.ccmod` or `.zip`). Verifying the game leaves them alone.
 - **Controller-first launcher**: every control is reachable with a D-pad, with a clear focus ring.
 - **Playing status** (optional, off by default): show as playing CrossCode on Steam.
 - **Steam diagnostics** (Settings): a read-only report of CrossCode's depots, Steam Cloud rules and your

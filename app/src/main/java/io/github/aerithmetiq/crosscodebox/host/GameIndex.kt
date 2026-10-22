@@ -38,15 +38,19 @@ class GameIndex(private val entries: Map<String, GameEntry>, val pageRoot: Strin
      * under [pageRoot]. Try both spellings; the index is a map lookup, so the extra probe is free.
      */
     fun findGamePath(path: String): GameEntry? {
-        val p = path.trimStart('/')
+        val p = clean(path).trimStart('/')
         entries[p]?.let { return it }
         return entries["$pageRoot/$p"]
     }
 
+    /** CrossCodeBox: `./ccloader3/x` and `a/./b` (CCLoader3 builds such paths) name the same file as `ccloader3/x`. */
+    private fun clean(path: String): String =
+        if (!path.contains("./")) path else path.split('/').filter { it != "." }.joinToString("/")
+
     /** Relative index key of the directory [path] names, or null when it is not a directory. */
     fun findGameDir(path: String): String? {
         /* The engines build directory paths with a trailing separator (`assets/extension/`). */
-        val p = path.trim('/')
+        val p = clean(path).trim('/')
         if (p.isEmpty() || p == pageRoot) return pageRoot
         if (entries[p]?.isDir == true) return p
         if (entries["$pageRoot/$p"]?.isDir == true) return "$pageRoot/$p"
