@@ -129,9 +129,8 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
 - **Touch controls transparency** (`KEY_TOUCH_TRANSPARENCY`, 0-100, default 0): the whole overlay's
   alpha (`OnScreenPadView.transparency`); at 100 it is invisible and still works. A slider in
   Settings → Game.
-- Not seen on screen yet: AerithMetiq has touch controls off on the Nova, and their settings are not
-  changed for tests. Checked: the shim reads the three states at the title screen (all false) and
-  the bridge call goes through.
+- AerithMetiq confirmed both working on the Nova (2026-10-21), with touch controls turned on for the
+  test (they normally play with them off).
 
 ## Achievements
 
