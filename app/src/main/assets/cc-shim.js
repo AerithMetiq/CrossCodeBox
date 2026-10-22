@@ -7,7 +7,8 @@
  * pad's JSON is parsed only when the app sends a different one. CrossCodeBox's own: greenworks'
  * activateAchievement passes the achievement to the app, which can unlock it on Steam; and the
  * game's screen shakes are passed to the app to vibrate (hookRumble); and cutscenes, conversations
- * and Direct Links are reported so the touch controls can step aside (watchScenes).
+ * and Direct Links are reported so the touch controls can step aside (watchScenes); and a font PNG
+ * drawn unscaled is drawn without smoothing, so its glyph widths are measured right (exactUnscaledDraws).
  */
 /*
  * CrossCode — Android WebView shim (this host's CrossCode profile).
@@ -353,6 +354,28 @@
         },
         clearAchievement: noop, activateGameOverlayToStore: noop
     };
+
+    /* CrossCodeBox: fonts measured right. `ig.Font._loadMetrics` draws each font's PNG unscaled on a
+     * fresh canvas (`drawImage(img, 0, 0)`, smoothing on) and reads its bottom row back: a pixel with any
+     * alpha is part of a glyph, alpha 0 is the gap between two. Unscaled, smoothing should change
+     * nothing, but the WebView 109 on the Retroid Pocket Nova bleeds the glyph edges into the gaps
+     * (alpha 1 where the file has 0; measured 2026-10-21), so the small font lost its first gap: 222
+     * glyphs instead of 223, and every character after it was drawn as the next one (save slots read
+     * "Sipncvt !Trvbsf" for "Rhombus Square"). With smoothing off, the same read gives the file's
+     * pixels. So an unscaled draw at whole pixels is done with smoothing off; any other draw, and a
+     * context that already has it off (the game's screen), is left as it is. */
+    (function exactUnscaledDraws() {
+        var proto = window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype;
+        if (!proto || typeof proto.drawImage !== "function") return;
+        var draw = proto.drawImage;
+        proto.drawImage = function (image, x, y) {
+            if (arguments.length !== 3 || !this.imageSmoothingEnabled || x !== (x | 0) || y !== (y | 0)) {
+                return draw.apply(this, arguments);
+            }
+            this.imageSmoothingEnabled = false;
+            try { return draw.call(this, image, x, y); } finally { this.imageSmoothingEnabled = true; }
+        };
+    })();
 
     /* CrossCodeBox: the game's screen shakes, felt. Every shake goes through `ig.rumble.addRumble`
      * with a RumbleHandle whose `power` is the game's own strength (0.5 to 15, already scaled by its

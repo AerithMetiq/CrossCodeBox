@@ -131,6 +131,16 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   Settings → Game.
 - AerithMetiq confirmed both working on the Nova (2026-10-21), with touch controls turned on for the
   test (they normally play with them off).
+- **Font glyph widths** (`cc-shim.js`, `exactUnscaledDraws`): `ig.Font._loadMetrics` draws a font's
+  PNG unscaled onto a new canvas with smoothing on, reads the bottom row back, and treats any alpha
+  above 0 as glyph and alpha 0 as a gap. On the Nova's WebView 109 the glyph edges bled into the gaps
+  (alpha 1 or 254 where the file has 0 or 255). `media/font/hall-fetica-small.png` lost its first gap,
+  so it measured 222 glyphs instead of 223, and every small-font character drew the next one: save
+  slots read "Sipncvt !Trvbsf" for "Rhombus Square" (reported by AerithMetiq 2026-10-21). With
+  smoothing off, or on a `willReadFrequently` canvas, the read matches the file. The shim draws any
+  3-argument, whole-pixel `drawImage` with smoothing off, and leaves contexts that already have it
+  off (the game's screen) alone. Verified on the Nova: all three fonts measure 223 glyphs (check
+  `sc.fontsystem.smallFont.widthMap.length` over CDP), and the Load Game slots read right.
 
 ## Achievements
 
