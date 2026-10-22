@@ -157,9 +157,12 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   ACHIEVEMENTS stats (31, 32, 23 bits) whose bit entries are keyed by the bit number with no `bit`
   field (`Achievements.bits` reads the key; JavaSteam's own `getExpandedAchievements` would miss them).
   Steam dropped the connection twice right as the app started, mid-read; the retries cover that.
-- While storing, the session tells Steam it runs the game (`SteamSession.runningGame`, games played
-  only, no persona change) and clears it after: Steam's own client changes stats only in game. Not
-  yet proven needed, because no store has run.
+- First real store (2026-10-21, "Chapter 1 Complete" earned on the Nova): the session claimed the
+  game while storing and Steam logged it off as **LoggedInElsewhere**, because the playing-status
+  session (on in Settings) already held the game; an account is in game on one session at a time.
+  Now the change is sent as is first, and only if Steam refuses it is it sent again with the session
+  running the game (`SteamSession.runningGame`). JavaSteam's 10 s job timeout also cancelled stats
+  reads that Steam answered slowly; the read's job now has 30 s.
 
 ## Build and test
 

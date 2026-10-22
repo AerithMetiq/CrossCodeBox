@@ -61,7 +61,9 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
             .setSteamIdForUser(me.convertToUInt64())
             .setCrcStats(0)
             .setSchemaLocalVersion(-1)
-        val job = AsyncJobSingle<UserStatsCallback>(session.client, request.sourceJobID)
+        /* JavaSteam gives a job 10 s by default; Steam took longer than that to send the schema on the
+         * Nova (the job was cancelled while still connected). */
+        val job = AsyncJobSingle<UserStatsCallback>(session.client, request.sourceJobID).apply { timeout = TIMEOUT_SEC * 1000 }
         session.client.send(request)
         val got = try {
             job.toFuture().get(TIMEOUT_SEC, TimeUnit.SECONDS)
@@ -107,18 +109,23 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
         for ((statId, value) in change) {
             msg.body.addStats(CMsgClientStoreUserStats2.Stats.newBuilder().setStatId(statId).setStatValue(value))
         }
-        /* Steam's own client changes a game's stats only while it runs the game, so this session says
-         * it does for the moment the change takes (without setting the account online). */
-        session.runningGame(appId)
-        Thread.sleep(500)
-        val reply = replies.expect()
-        session.client.send(msg)
-        val answer = try {
-            reply.get(TIMEOUT_SEC, TimeUnit.SECONDS)
-        } catch (e: Exception) {
-            throw IOException("Steam did not answer the achievement change (${closeReason()})", e)
-        } finally {
-            runCatching { session.runningGame(null) }
+        /* First as is. Claiming the game on this session as well ("in game") made Steam log it off as
+         * LoggedInElsewhere when the playing-status session already held the game (Nova, 2026-10-21):
+         * an account is in game on one session at a time. Only if Steam refuses the change is it sent
+         * again with this session running the game, as Steam's own client would be. */
+        var answer = send(msg, replies)
+        if (answer == null || EResult.from(answer.eresult) != EResult.OK) {
+            Log.i(TAG, "achievements: Steam did not take the change (" +
+                (answer?.let { EResult.from(it.eresult).toString() } ?: closeReason()) + "); again, in game")
+            if (session.disconnected) throw IOException("Steam closed the connection (${closeReason()})")
+            session.runningGame(appId)
+            Thread.sleep(500)
+            msg.sourceJobID = session.client.getNextJobID()
+            answer = try {
+                send(msg, replies)
+            } finally {
+                runCatching { session.runningGame(null) }
+            } ?: throw IOException("Steam did not answer the achievement change (${closeReason()})")
         }
         val result = EResult.from(answer.eresult)
         if (result != EResult.OK) throw IOException("Steam refused the achievement change ($result)")
@@ -129,6 +136,20 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
         val missing = fresh.filter { !after.unlocked(it) }
         if (missing.isNotEmpty()) throw IOException("Steam does not show ${missing.joinToString()} as unlocked")
         return fresh
+    }
+
+    /** Sends the change and waits for Steam's answer; null when none came. */
+    private fun send(
+        msg: ClientMsgProtobuf<CMsgClientStoreUserStats2.Builder>,
+        replies: StoreReplies,
+    ): CMsgClientStoreUserStatsResponse? {
+        val reply = replies.expect()
+        session.client.send(msg)
+        return try {
+            reply.get(TIMEOUT_SEC, TimeUnit.SECONDS)
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private fun closeReason(): String = when {
