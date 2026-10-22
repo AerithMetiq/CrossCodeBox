@@ -9,7 +9,7 @@
     android:background="@drawable/launcher_bg">
     <!-- The launcher draws edge to edge on every Android version: the background, the game's art and
          the scrim fill the whole screen, the accent-coloured status bar strip is drawn over their top edge
-         (Screens.accentStatusBar), and only the controls' layout below is kept clear of the bars
+         (Screens.statusBar), and only the controls' layout below is kept clear of the bars
          (fitsSystemWindows). -->
 
     <ImageView
@@ -57,8 +57,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:adjustViewBounds="true"
-                    android:contentDescription="Alabaster Dawn"
-                    android:maxHeight="72dp"
+                    android:contentDescription="CrossCode"
+                    android:maxHeight="120dp"
                     android:scaleType="fitCenter"
                     android:visibility="gone" />
 
@@ -91,7 +91,7 @@
                     android:layout_marginTop="10dp"
                     android:letterSpacing="0.3"
                     android:text="STEAM CLOUD LAUNCHER"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="@color/accent"
                     android:textSize="12sp" />
             </LinearLayout>
 

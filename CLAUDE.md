@@ -60,7 +60,7 @@ belongs in the other. What differs here, deliberately:
 - `assets/cc-shim.js` instead of `ada-shim.js`, with the same three changes AlabasterDawnBox made to its
   shim (settings read every 30th poll, running-deadline frame gate, pad JSON parsed only on change).
 - Settings has no Resolution button (that one sets the terra engine's stored option).
-- Look: cyan accent `#40C4FF`, "CROSSCODE / BOX" wordmark, original icon; `Screens.accentStatusBar`.
+- Look: cyan accent `#40C4FF`, "CROSSCODE / BOX" wordmark, original icon; `Screens.statusBar`.
 - The diagnostics probe CrossCode only.
 
 ## Status
@@ -147,7 +147,7 @@ be described as untested until it has run on one.
   (measured with Alabaster Dawn in AlabasterDawnBox's CLAUDE.md, Performance).
 - Toolchain: AGP 8.13.2, Kotlin 2.2.10, Gradle 8.14.3, compileSdk/targetSdk 36, minSdk 26, Java 17 target.
   targetSdk 36 means edge-to-edge on Android 15+: screens use `fitsSystemWindows` and
-  `Screens.accentStatusBar`.
+  `Screens.statusBar`.
 
 ## Steam / JavaSteam notes
 
@@ -186,7 +186,7 @@ be described as untested until it has run on one.
 ## UI conventions
 
 - **The status bar is the accent colour with dark icons on every launcher screen**: call
-  `Screens.accentStatusBar(this)` after `setContentView`. It lays the window out edge to edge and draws
+  `Screens.statusBar(this)` after `setContentView`. It lays the window out edge to edge and draws
   an accent-coloured strip the height of the status bar, because Android 15+ ignores `statusBarColor`.
 - Match the launcher: dark gradient (`launcher_bg`), one accent colour (`@color/accent`, cyan),
   `text_primary` / `text_secondary`, the serif "CROSSCODE / BOX" wordmark.

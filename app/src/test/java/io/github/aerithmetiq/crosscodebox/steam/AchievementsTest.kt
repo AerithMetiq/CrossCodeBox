@@ -37,6 +37,28 @@ class AchievementsTest {
         )
     }
 
+    /** CrossCode's own layout: the entry's key is the bit, and there is no `bit` field. */
+    @Test
+    fun `the bit is the entry's key when it has no bit field`() {
+        val crosscode = kv(
+            "368340", null,
+            kv("stats", null, kv("2", null, kv("type", "ACHIEVEMENTS"), kv("bits", null,
+                kv("0", null, kv("name", "enviro-kills_1"), kv("display")),
+                kv("7", null, kv("name", "enviro-kills_2"), kv("display")),
+            ))),
+        )
+        assertEquals(
+            mapOf("enviro-kills_1" to AchievementBit(2, 0), "enviro-kills_2" to AchievementBit(2, 7)),
+            Achievements.bits(crosscode),
+        )
+    }
+
+    @Test
+    fun `the stats section is found under the app's own key too`() {
+        val wrapped = kv("", null, schema)
+        assertEquals(Achievements.bits(schema), Achievements.bits(wrapped))
+    }
+
     @Test
     fun `unlocking sets only the missing bits, a stat at a time`() {
         val bits = Achievements.bits(schema)

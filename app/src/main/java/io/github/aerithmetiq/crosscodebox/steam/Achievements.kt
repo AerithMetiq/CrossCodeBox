@@ -10,19 +10,30 @@ data class AchievementBit(val statId: Int, val bit: Int)
  *
  * Steam keeps a game's achievements as bits of integer stats ("achievement blocks"). The game's stats
  * schema, which Steam sends with the user's stats, names each bit: `stats/<stat id>/bits/<n>` holds the
- * achievement's API `name` and its `bit`. Unlocking an achievement is storing its stat with that bit
+ * achievement's API `name`, and `<n>` is the bit (CrossCode's schema, read on 2026-10-21: three stats
+ * of type ACHIEVEMENTS with 31, 32 and 23 bits; some schemas also carry an explicit `bit`). Unlocking an achievement is storing its stat with that bit
  * set; nothing here ever clears a bit.
  */
 object Achievements {
 
+    /**
+     * The schema's `stats` section: under the root, or one level down, under the app's own key, which
+     * is where the binary schema Steam sends keeps it.
+     */
+    fun statsOf(schema: KeyValue): KeyValue {
+        schema["stats"].takeIf { it.children.isNotEmpty() }?.let { return it }
+        for (child in schema.children) child["stats"].takeIf { it.children.isNotEmpty() }?.let { return it }
+        return schema["stats"]
+    }
+
     /** Every achievement in [schema] (the root of the stats schema), by its API name. */
     fun bits(schema: KeyValue): Map<String, AchievementBit> {
         val out = LinkedHashMap<String, AchievementBit>()
-        for (stat in schema["stats"].children) {
+        for (stat in statsOf(schema).children) {
             val statId = stat.name?.toIntOrNull() ?: continue
             for (entry in stat["bits"].children) {
                 val name = entry["name"].value?.takeIf { it.isNotBlank() } ?: continue
-                val bit = entry["bit"].value?.toIntOrNull() ?: continue
+                val bit = entry["bit"].value?.toIntOrNull() ?: entry.name?.toIntOrNull() ?: continue
                 if (bit in 0..31) out[name] = AchievementBit(statId, bit)
             }
         }

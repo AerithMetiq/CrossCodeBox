@@ -47,11 +47,11 @@ object GameFiles {
         File(root(context), TheGame.titleBackground).takeIf { it.isFile }
 
     /**
-     * The game's name as its title screen draws it, in place of the launcher's own wordmark. CrossCode
-     * draws its logo from an atlas rather than one picture, so the wordmark stays.
+     * The game's logo atlas, whose top band (see [TitleArt]) is shown in place of the launcher's own
+     * wordmark.
      */
-    @Suppress("UNUSED_PARAMETER")
-    fun titleName(context: Context): File? = null
+    fun titleName(context: Context): File? =
+        File(root(context), TitleArt.LOGO).takeIf { it.isFile }
 
     /*
      * Saves. The host gives the engine `userdata/` as its save root and CrossCode writes `Default/cc.save`

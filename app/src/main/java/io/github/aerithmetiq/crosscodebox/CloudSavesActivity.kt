@@ -88,7 +88,7 @@ class CloudSavesActivity : AppCompatActivity() {
             )
             addView(Screens.row(ctx, 8, restore))
         })
-        Screens.accentStatusBar(this)
+        Screens.statusBar(this)
         check.post { check.requestFocus() }
     }
 

@@ -91,7 +91,8 @@ class SteamProbe(private val session: SteamSession) {
             try {
                 val state = SteamAchievements(session, game.appId).read()
                 val names = state.bits.keys
-                out.add("achievements: ${names.count { state.unlocked(it) }} of ${names.size} unlocked on Steam")
+                out.add("achievements: ${names.count { state.unlocked(it) }} of ${names.size} unlocked on Steam" +
+                    if (names.isEmpty()) " (Steam sent ${state.received})" else "")
                 for (name in names) {
                     out.add("  [${if (state.unlocked(name)) "x" else " "}] $name" + (state.titles[name]?.takeIf { it != name }?.let { " ($it)" } ?: ""))
                 }

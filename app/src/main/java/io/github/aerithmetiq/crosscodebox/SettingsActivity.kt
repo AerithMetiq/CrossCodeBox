@@ -103,7 +103,7 @@ class SettingsActivity : AppCompatActivity() {
             addView(Screens.row(ctx, 10, notices, back))
             /* Controller focus on the first button once the page is laid out. */
         })
-        Screens.accentStatusBar(this)
+        Screens.statusBar(this)
     }
 
     /** The game's settings: each control writes straight to the file the game reads when it starts. */

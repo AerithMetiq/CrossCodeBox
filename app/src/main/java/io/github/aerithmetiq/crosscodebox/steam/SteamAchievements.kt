@@ -4,10 +4,14 @@ import `in`.dragonbra.javasteam.base.ClientMsgProtobuf
 import `in`.dragonbra.javasteam.base.IPacketMsg
 import `in`.dragonbra.javasteam.enums.EMsg
 import `in`.dragonbra.javasteam.enums.EResult
+import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientserverUserstats.CMsgClientGetUserStats
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientserverUserstats.CMsgClientStoreUserStats2
 import `in`.dragonbra.javasteam.protobufs.steamclient.SteammessagesClientserverUserstats.CMsgClientStoreUserStatsResponse
 import `in`.dragonbra.javasteam.steam.handlers.ClientMsgHandler
 import `in`.dragonbra.javasteam.steam.handlers.steamuserstats.SteamUserStats
+import `in`.dragonbra.javasteam.steam.handlers.steamuserstats.callback.UserStatsCallback
+import `in`.dragonbra.javasteam.types.AsyncJobSingle
+import android.util.Log
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -29,26 +33,53 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
         val bits: Map<String, AchievementBit>,
         /** Display names from the schema, by API name, for reports. */
         val titles: Map<String, String>,
+        /** What Steam sent, for the report when no achievement is found: schema bytes, stats, blocks. */
+        val received: String,
     ) {
         fun unlocked(name: String) = Achievements.unlocked(name, bits, values)
     }
 
-    private val stats = session.client.getHandler(SteamUserStats::class.java)
-        ?: error("JavaSteam has no SteamUserStats handler")
+    /* JavaSteam's SteamUserStats turns Steam's answer into a UserStatsCallback; the request is sent
+     * from here (see [read]). */
+    init {
+        session.client.getHandler(SteamUserStats::class.java) ?: error("JavaSteam has no SteamUserStats handler")
+    }
 
     private val replies = StoreReplies().also { session.client.addHandler(it) }
 
     fun read(): State {
         val me = session.client.steamID ?: throw IOException("not logged on")
-        val got = stats.getUserStats(appId, me).toFuture().get(TIMEOUT_SEC, TimeUnit.SECONDS)
+        /* JavaSteam's getUserStats leaves `schema_local_version` at 0, which tells Steam this client
+         * already has the schema, and Steam then sends none: no achievement names, nothing to unlock
+         * (seen on the Nova, 2026-10-21: "0 of 0"). -1 asks for it, as Steam's own client does on a
+         * first request. */
+        val request = ClientMsgProtobuf<CMsgClientGetUserStats.Builder>(
+            CMsgClientGetUserStats::class.java, EMsg.ClientGetUserStats,
+        )
+        request.sourceJobID = session.client.getNextJobID()
+        request.body.setGameId(appId.toLong())
+            .setSteamIdForUser(me.convertToUInt64())
+            .setCrcStats(0)
+            .setSchemaLocalVersion(-1)
+        val job = AsyncJobSingle<UserStatsCallback>(session.client, request.sourceJobID)
+        session.client.send(request)
+        val got = try {
+            job.toFuture().get(TIMEOUT_SEC, TimeUnit.SECONDS)
+        } catch (e: java.util.concurrent.CancellationException) {
+            throw IOException("Steam closed the connection before sending the achievements (${closeReason()})", e)
+        }
         if (got.result != EResult.OK) throw IOException("Steam would not send the achievements (${got.result})")
         val schema = got.schemaKeyValues
         val titles = LinkedHashMap<String, String>()
-        for (stat in schema["stats"].children) for (entry in stat["bits"].children) {
+        for (stat in Achievements.statsOf(schema).children) for (entry in stat["bits"].children) {
             val name = entry["name"].value ?: continue
             titles[name] = entry["display"]["name"]["english"].value ?: name
         }
-        return State(got.crcStats, got.stats.associate { it.statId to it.statValue }, Achievements.bits(schema), titles)
+        return State(
+            got.crcStats, got.stats.associate { it.statId to it.statValue }, Achievements.bits(schema), titles,
+            "schema ${got.schema.size()} bytes with ${Achievements.statsOf(schema).children.size} stats; " +
+                "${got.stats.size} stat values, ${got.achievementBlocks.size} achievement blocks",
+        )
     }
 
     /**
@@ -60,6 +91,8 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
         val state = read()
         val fresh = names.filter { it in state.bits && !state.unlocked(it) }.distinct()
         val change = Achievements.toStore(fresh, state.bits, state.values)
+        Log.i(TAG, "achievements: Steam has ${state.bits.keys.count { state.unlocked(it) }} of ${state.bits.size}; " +
+            "${fresh.size} of ${names.size} asked for are new" + if (change.isEmpty()) "" else ", storing stats ${change.keys}")
         if (change.isEmpty()) return emptyList()
         val me = session.client.steamID ?: throw IOException("not logged on")
         val msg = ClientMsgProtobuf<CMsgClientStoreUserStats2.Builder>(
@@ -74,12 +107,18 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
         for ((statId, value) in change) {
             msg.body.addStats(CMsgClientStoreUserStats2.Stats.newBuilder().setStatId(statId).setStatValue(value))
         }
+        /* Steam's own client changes a game's stats only while it runs the game, so this session says
+         * it does for the moment the change takes (without setting the account online). */
+        session.runningGame(appId)
+        Thread.sleep(500)
         val reply = replies.expect()
         session.client.send(msg)
         val answer = try {
             reply.get(TIMEOUT_SEC, TimeUnit.SECONDS)
         } catch (e: Exception) {
-            throw IOException("Steam did not answer the achievement change", e)
+            throw IOException("Steam did not answer the achievement change (${closeReason()})", e)
+        } finally {
+            runCatching { session.runningGame(null) }
         }
         val result = EResult.from(answer.eresult)
         if (result != EResult.OK) throw IOException("Steam refused the achievement change ($result)")
@@ -90,6 +129,12 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
         val missing = fresh.filter { !after.unlocked(it) }
         if (missing.isNotEmpty()) throw IOException("Steam does not show ${missing.joinToString()} as unlocked")
         return fresh
+    }
+
+    private fun closeReason(): String = when {
+        session.loggedOffResult != null -> "logged off: ${session.loggedOffResult}"
+        session.disconnected -> "disconnected, no reason given"
+        else -> "still connected"
     }
 
     /** Catches Steam's answer to a stats change, which JavaSteam's own handlers ignore. */
@@ -109,6 +154,7 @@ class SteamAchievements(private val session: SteamSession, private val appId: In
     }
 
     private companion object {
+        const val TAG = "CrossCodeBox"
         const val TIMEOUT_SEC = 30L
     }
 }

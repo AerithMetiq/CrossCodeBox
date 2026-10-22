@@ -25,13 +25,13 @@ object Screens {
     fun dp(context: Context, value: Int): Int = (value * context.resources.displayMetrics.density).toInt()
 
     /**
-     * The status bar in the accent colour, with dark icons, on every Android version. Call after
-     * `setContentView`. The window is laid out edge to edge and an accent-coloured strip the height of the status
+     * The status bar in dark navy (`@color/status_bar`), with light icons, on every Android version. Call
+     * after `setContentView`. The window is laid out edge to edge and a strip the height of the status
      * bar is drawn over the top of the content: Android 15+ ignores a status bar colour, so a strip is
      * the one way that works everywhere. [onBars] also gets the bar sizes, for views that float
      * outside the `fitsSystemWindows` layout.
      */
-    fun accentStatusBar(activity: Activity, onBars: (Insets) -> Unit = {}) {
+    fun statusBar(activity: Activity, onBars: (Insets) -> Unit = {}) {
         val window = activity.window
         WindowCompat.setDecorFitsSystemWindows(window, false)
         @Suppress("DEPRECATION")
@@ -39,9 +39,9 @@ object Screens {
             window.statusBarColor = Color.TRANSPARENT
             window.navigationBarColor = Color.TRANSPARENT
         }
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = true
+        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
         val content = activity.findViewById<FrameLayout>(android.R.id.content)
-        val strip = View(activity).apply { setBackgroundColor(ContextCompat.getColor(activity, R.color.accent)) }
+        val strip = View(activity).apply { setBackgroundColor(ContextCompat.getColor(activity, R.color.status_bar)) }
         content.addView(strip, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, Gravity.TOP))
         ViewCompat.setOnApplyWindowInsetsListener(content) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
@@ -65,7 +65,7 @@ object Screens {
         }
         return ScrollView(context).apply {
             isFillViewport = true
-            /* Clear of the status and navigation bars: every screen is edge to edge (accentStatusBar). */
+            /* Clear of the status and navigation bars: every screen is edge to edge (statusBar). */
             fitsSystemWindows = true
             setBackgroundResource(R.drawable.launcher_bg)
             addView(column)

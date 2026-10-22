@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.Color
 import android.graphics.Typeface
 import android.os.Build
@@ -95,6 +96,8 @@ class LauncherActivity : AppCompatActivity() {
     @Volatile private var session: SteamSession? = null
     @Volatile private var leaving = false
     @Volatile private var refreshing = false
+    /** Whether the last start-up logon reached Steam: the green dot before "Signed in as". */
+    @Volatile private var online = false
 
     /** The game download runs in [GameDownloadService]; this is its state, mirrored for the screen. */
     private val downloading get() = GameDownloadState.running
@@ -135,7 +138,7 @@ class LauncherActivity : AppCompatActivity() {
         /* The accent-coloured status bar. The avatar floats in the corner, outside the controls' layout, so it
          * is moved clear of the bar here. */
         val d = resources.displayMetrics.density
-        Screens.accentStatusBar(this) { bars ->
+        Screens.statusBar(this) { bars ->
             avatar.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 topMargin = bars.top + (14 * d).toInt()
                 marginEnd = bars.right + (18 * d).toInt()
@@ -223,7 +226,16 @@ class LauncherActivity : AppCompatActivity() {
     /** "Signed in as <persona>", the name bright and bold against the dim label. */
     private fun accountLine(): CharSequence {
         val name = store.persona ?: store.lastAccount ?: "Steam user"
-        return SpannableStringBuilder("Signed in as ").apply {
+        return SpannableStringBuilder().apply {
+            /* A green dot while Steam answers, as CrossDroid's launcher has it. */
+            if (online) {
+                append("● ")
+                setSpan(
+                    ForegroundColorSpan(ContextCompat.getColor(this@LauncherActivity, R.color.online)),
+                    0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+            }
+            append("Signed in as ")
             val start = length
             append(name)
             setSpan(StyleSpan(Typeface.BOLD), start, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -452,6 +464,7 @@ class LauncherActivity : AppCompatActivity() {
                 s.connect()
                 s.logOn(login)
                 saveProfile(s)
+                online = true
                 /* While logged on anyway: is there a newer build of the game? Read-only. */
                 if (GameFiles.installed(this)) {
                     runCatching { steamPublicBuild(s, TheGame.steam.appId) }.getOrNull()
@@ -466,7 +479,9 @@ class LauncherActivity : AppCompatActivity() {
                 }
             } catch (e: Throwable) {
                 /* Signing out mid-refresh closes this session on purpose; that is not "offline". */
+                online = false
                 if (!leaving && store.load() != null) {
+                    ui { render() }
                     Log.i(TAG, "profile refresh failed", e)
                     ui { setStatus("Couldn't reach Steam. You can still play offline.") }
                 }
@@ -525,16 +540,30 @@ class LauncherActivity : AppCompatActivity() {
         val shown = listOf(background, name).joinToString("|") { f -> f?.let { "${it.path}:${it.length()}:${it.lastModified()}" } ?: "-" }
         if (shown == artShown) return
         artShown = shown
-        fun show(view: ImageView, file: File?): Boolean {
-            val bitmap = file?.let { decodeArt(it) }
+        fun show(view: ImageView, bitmap: Bitmap?): Boolean {
             view.visibility = if (bitmap != null) View.VISIBLE else View.GONE
-            bitmap?.let { view.setImageBitmap(it) }
+            /* Pixel art: drawn without smoothing, so it stays sharp when it is scaled up. */
+            bitmap?.let { view.setImageDrawable(BitmapDrawable(resources, it).apply { isFilterBitmap = false }) }
             return bitmap != null
         }
-        show(gameArt, background)
-        val named = show(gameTitle, name)
+        show(gameArt, background?.let { decodeArt(it) })
+        val named = show(gameTitle, name?.let { decodeArt(it) }?.let(::logoBand))
         wordmark.visibility = if (named) View.GONE else View.VISIBLE
         wordmarkDroid.visibility = wordmark.visibility
+    }
+
+    /** The logo band at the top of the game's logo atlas (see [TitleArt]), or null to keep the wordmark. */
+    private fun logoBand(atlas: Bitmap): Bitmap? {
+        val w = atlas.width
+        val row = IntArray(w)
+        val band = TitleArt.topBand(atlas.height) { y ->
+            atlas.getPixels(row, 0, w, 0, y, w, 1)
+            row.any(TitleArt::lit)
+        } ?: return null
+        val pixels = IntArray(w * band.count())
+        atlas.getPixels(pixels, 0, w, 0, band.first, w, band.count())
+        TitleArt.blackToAlpha(pixels)
+        return Bitmap.createBitmap(pixels, w, band.count(), Bitmap.Config.ARGB_8888)
     }
 
     /** Decodes a picture no larger than the launcher can use, so big art does not waste memory. */

@@ -73,7 +73,7 @@ class AchievementService : Service() {
                     }
                     attempts = 0
                 } catch (e: Exception) {
-                    Log.w(TAG, "achievements: not sent this time: ${e.message}")
+                    Log.w(TAG, "achievements: not sent this time: ${e.javaClass.simpleName}: ${e.message}", e)
                     if (++attempts >= MAX_ATTEMPTS) break
                     Thread.sleep(RETRY_MS)
                 }

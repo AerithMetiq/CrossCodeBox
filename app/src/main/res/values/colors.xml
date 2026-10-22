@@ -2,6 +2,10 @@
 <resources>
     <!-- Dark launcher palette: near-black with a cool glow at the top, so the accent reads as lit. -->
     <color name="launcher_bg_top">#1F2547</color>
+    <!-- The status bar strip: dark navy with light icons, as CrossDroid's launcher has it. -->
+    <color name="status_bar">#1B2541</color>
+    <!-- The dot before "Signed in as" while Steam answers. -->
+    <color name="online">#4CAF50</color>
     <color name="launcher_bg_mid">#0D1117</color>
     <color name="launcher_bg_bottom">#090C10</color>
     <color name="scrim">#A6060A10</color>
