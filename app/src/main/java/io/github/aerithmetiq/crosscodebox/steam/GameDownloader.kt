@@ -63,7 +63,8 @@ class GameDownloadException(message: String) : Exception(message)
  * even instead of collapsing into a tail of small files at the end.
  *
  * The depot is not assumed: each of the app's own depots is asked for its manifest until one lists
- * [GameDownload.ENTRY], and only the files under that [GameDownload.WEB_ROOT] are fetched. Every chunk is checked
+ * [GameDownload.ENTRY], and only the files under that [GameDownload.WEB_ROOT] are fetched, together with
+ * those of the depots every platform installs alongside, owned DLC included ([GameDownload.extras]). Every chunk is checked
  * against the manifest's checksum by JavaSteam as it is decrypted. Files already on disk with the
  * manifest's size and SHA-1 are kept, so an interrupted download carries on where it stopped.
  *
@@ -132,11 +133,22 @@ class GameDownloader(private val session: SteamSession, private val appId: Int, 
             if (found == null) {
                 throw GameDownloadException("Could not find ${GameDownload.ENTRY} in the game's Steam depots (${skipped.joinToString("; ")}).")
             }
-            download(found, bytes)
+            /* The content every platform installs alongside, and DLC this account owns. */
+            val extras = ArrayList<Found>()
+            val extraDepots = GameDownload.extras(ProbeReport.depots(kv), found.depotId)
+            if (extraDepots.isNotEmpty()) status("Looking for the game's other content and DLC…")
+            for (depot in extraDepots) {
+                check()
+                val before = skipped.size
+                open(depot, skipped, found.prefix)?.let { extras.add(it) }
+                if (skipped.size > before) Log.i(TAG, "download: left out ${skipped.last()}")
+            }
+            download(listOf(found) + extras, bytes)
 
             val build = kv["depots"]["branches"]["public"]["buildid"].value
             File(root, GameDownload.MARKER).writeText(
-                "app=$appId\ndepot=${found.depotId}\nmanifest=${found.manifest.manifestGID.toULong()}\nbuild=${build ?: "unknown"}\n"
+                "app=$appId\ndepot=${found.depotId}\nmanifest=${found.manifest.manifestGID.toULong()}\nbuild=${build ?: "unknown"}\n" +
+                    (if (extras.isEmpty()) "" else "extra=" + extras.joinToString(",") { "${it.depotId}:${it.manifest.manifestGID.toULong()}" } + "\n")
             )
         } catch (e: ExecutionException) {
             throw e.cause ?: e
@@ -147,12 +159,16 @@ class GameDownloader(private val session: SteamSession, private val appId: Int, 
 
     private class Found(val depotId: Int, val key: ByteArray, val manifest: DepotManifest, val prefix: String)
 
-    /** Fetches one depot's manifest; null (with the reason added to [skipped]) when it is not the one. */
-    private fun open(depot: DepotSummary, skipped: MutableList<String>): Found? {
+    /**
+     * Fetches one depot's manifest; null (with the reason added to [skipped]) when it is not the one.
+     * With [prefix] given, the depot is an added one ([GameDownload.extras]): its files sit where the
+     * main depot's do, and it need not hold the entry page.
+     */
+    private fun open(depot: DepotSummary, skipped: MutableList<String>, prefix: String? = null): Found? {
         val manifestId = depot.publicManifest?.toULongOrNull()?.toLong() ?: return null
         val key = apps.getDepotDecryptionKey(depot.id, appId).toFuture().get(TIMEOUT_SEC, TimeUnit.SECONDS)
         if (key.result != EResult.OK) {
-            skipped.add("depot ${depot.id}: no key (${key.result})")
+            skipped.add("depot ${depot.id}: no key (${key.result})" + if (depot.dlcAppId != null) ", DLC ${depot.dlcAppId} not owned" else "")
             return null
         }
         val code = await(content.getManifestRequestCode(depot.id, appId, manifestId, "public", null, scope))
@@ -167,22 +183,32 @@ class GameDownloader(private val session: SteamSession, private val appId: Int, 
             skipped.add("depot ${depot.id}: file names could not be read")
             return null
         }
-        val prefix = GameDownload.webPrefix(manifest.files.map { it.fileName })
-        if (prefix == null) {
+        val at = prefix ?: GameDownload.webPrefix(manifest.files.map { it.fileName })
+        if (at == null) {
             skipped.add("depot ${depot.id}: no ${GameDownload.WEB_ROOT}/")
             return null
         }
-        return Found(depot.id, key.depotKey, manifest, prefix)
+        return Found(depot.id, key.depotKey, manifest, at)
     }
 
-    private fun download(found: Found, bytes: (Long, Long) -> Unit) {
-        /* What is wanted: the files under the web game's folder, by their path below the install folder. */
-        val wanted = LinkedHashMap<String, FileData>()
-        for (file in found.manifest.files) {
-            val target = GameDownload.target(file.fileName, found.prefix) ?: continue
-            if (EDepotFileFlag.Symlink in file.flags) continue
-            if (EDepotFileFlag.Directory in file.flags) File(root, target).mkdirs() else wanted[target] = file
+    private fun download(depots: List<Found>, bytes: (Long, Long) -> Unit) {
+        /* What is wanted: the files under the web game's folder, by their path below the install folder,
+         * each with the depot it comes from; an added depot's file replaces the main one's. */
+        val layers = depots.map { found ->
+            val files = LinkedHashMap<String, Pair<Found, FileData>>()
+            for (file in found.manifest.files) {
+                val target = GameDownload.target(file.fileName, found.prefix) ?: continue
+                if (EDepotFileFlag.Symlink in file.flags) continue
+                if (EDepotFileFlag.Directory in file.flags) File(root, target).mkdirs() else files[target] = found to file
+            }
+            Log.i(TAG, "download: depot ${found.depotId}: ${files.size} files under ${GameDownload.WEB_ROOT}/, " +
+                "${files.values.sumOf { it.second.totalSize } / 1048576} MiB")
+            files
         }
+        val (merged, replaced) = GameDownload.merge(layers)
+        if (replaced > 0) Log.i(TAG, "download: $replaced files of the main depot are replaced by an added one")
+        val wanted = merged.mapValues { it.value.second }
+        val source = merged.mapValues { it.value.first }
         val total = wanted.values.sumOf { it.totalSize }
         root.mkdirs()
         File(root, GameDownload.MARKER).delete()
@@ -234,6 +260,7 @@ class GameDownloader(private val session: SteamSession, private val appId: Int, 
                     part.finish()
                     continue
                 }
+                val found = source.getValue(target)
                 for (chunk in file.chunks.sortedBy { it.offset }) {
                     jobs.add(pool.submit {
                         guarded {

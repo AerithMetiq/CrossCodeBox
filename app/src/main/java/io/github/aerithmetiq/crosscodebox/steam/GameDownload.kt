@@ -31,6 +31,30 @@ object GameDownload {
     }
 
     /**
+     * The depots added to the one that holds the game ([main]): the app's other depots with a public
+     * manifest that are not tied to a platform (no `oslist`), DLC included. Steam installs these on
+     * every platform alongside the platform's own depot, and their files land in the same folder.
+     * Depots of DLC the account does not own are refused a key and left out when downloading.
+     */
+    fun extras(depots: List<DepotSummary>, main: Int): List<DepotSummary> =
+        depots.filter { it.id != main && it.publicManifest?.toULongOrNull() != null && it.fromApp == null && list(it.oslist).isEmpty() }
+            .sortedBy { it.id }
+
+    /**
+     * The files of several depots in one map, by their path below the install folder. A later layer's
+     * file replaces an earlier one's at the same path, as an added depot's would in a Steam install.
+     * Also returns how many were replaced, for the log.
+     */
+    fun <T> merge(layers: List<Map<String, T>>): Pair<Map<String, T>, Int> {
+        val out = LinkedHashMap<String, T>()
+        var replaced = 0
+        for (layer in layers) for ((path, file) in layer) {
+            if (out.put(path, file) != null) replaced++
+        }
+        return out to replaced
+    }
+
+    /**
      * What comes before [WEB_ROOT] in a depot's file names ("" when it sits at the depot's top), or null
      * when the depot does not hold the web game at all.
      */

@@ -28,6 +28,38 @@ class GameDownloadTest {
         assertEquals(listOf(3110761, 3110762, 3110764), GameDownload.candidates(depots, "windows,linux").map { it.id })
     }
 
+    /** CrossCode's depots as the Nova's diagnostics report listed them (2026-10-21). */
+    @Test
+    fun extrasAreTheOtherDepotsForEveryPlatformDlcIncluded() {
+        val depots = listOf(
+            depot(228987, "windows", manifest = null, fromApp = 228980),
+            depot(368341, "windows"),
+            depot(368342, "linux"),
+            depot(368345, "windows"),
+            depot(368346, "linux", manifest = null),
+            depot(916190, null),
+            depot(916191, "macos", dlc = 960310),
+            depot(960310, null, dlc = 960310),
+            depot(1517030, null, dlc = 1517030),
+            depot(1517031, "macos", dlc = 1517030),
+            depot(1585790, null, dlc = 1585790),
+        )
+        assertEquals(listOf(916190, 960310, 1517030, 1585790), GameDownload.extras(depots, main = 368341).map { it.id })
+        assertEquals(listOf(960310, 1517030, 1585790), GameDownload.extras(depots, main = 916190).map { it.id })
+    }
+
+    @Test
+    fun aLaterDepotsFileReplacesAnEarlierOnesAtTheSamePath() {
+        val (merged, replaced) = GameDownload.merge(
+            listOf(
+                mapOf("assets/a.json" to "main", "assets/b.png" to "main"),
+                mapOf("assets/a.json" to "dlc", "assets/extension/x/x.json" to "dlc"),
+            )
+        )
+        assertEquals(mapOf("assets/a.json" to "dlc", "assets/b.png" to "main", "assets/extension/x/x.json" to "dlc"), merged)
+        assertEquals(1, replaced)
+    }
+
     @Test
     fun candidatesLeaveOutDepotsThatCannotBeDownloadedForThisApp() {
         val depots = listOf(

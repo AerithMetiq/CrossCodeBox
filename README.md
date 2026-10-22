@@ -27,9 +27,9 @@ title screen on a phone.
 
 | Milestone | What it adds | State |
 |---|---|---|
-| 1 | Launcher, Steam sign-in, download from Steam, the game host with CrossCode's shim | written, not yet run on a device |
-| 2 | Steam Cloud saves for CrossCode's `cc.save` | waiting for CrossCode's Steam Cloud layout |
-| 3 | Steam achievements | planned |
+| 1 | Launcher, Steam sign-in, download from Steam (with the DLC you own), the game host with CrossCode's shim | runs on a Retroid Pocket Nova |
+| 2 | Steam Cloud saves for CrossCode's `cc.save` | download and upload confirmed on the Nova |
+| 3 | Steam achievements | unlocks confirmed on the Nova |
 
 ## What it does
 
@@ -38,7 +38,11 @@ title screen on a phone.
 - **Your login stays private**: the password is passed to Steam and never stored. The refresh token
   Steam returns is encrypted with a key kept in the Android Keystore.
 - **Download from Steam** in the background with a notification, updates when Steam has a newer
-  build, and verify or delete from Settings.
+  build, and verify or delete from Settings. The DLC your account owns ("A New Home", skins) comes
+  with it.
+- **Steam Cloud saves**: PLAY downloads your newer saves; with uploads on (off by default), the saves
+  you change are sent back when you leave the game. Before a sync replaces a save on either side, the
+  old copy is kept on the device and can be restored from Settings.
 - **In-game menu** (Back): pauses the game; controller navigation; touch controls on or off; FPS
   readout; frame-rate limit (30/45/60, plus 90/120 on screens that have them).
 - **Touch controls for CrossCode** (Settings → Game): always sprint with the touch stick, dash only on

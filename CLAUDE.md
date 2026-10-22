@@ -73,8 +73,8 @@ belongs in the other. What differs here, deliberately:
 | Milestone | Scope | State |
 |---|---|---|
 | 1 | Launcher, sign-in, download of `assets/`, the host with `cc-shim.js` | **runs on the Nova** (2026-10-21): download 697 MiB / 4 722 files in 70 s from depot 368341 (the Windows depot; the shared 916190 does not hold the entry page), boot to the title screen with no missing files, `platform=Desktop`, canvas 1136x640, canvas 2D (`gl=none`). Gameplay, audio and pad mapping not yet tried |
-| 2 | Steam Cloud saves for `cc.save` | mapping set 2026-10-21 from the Nova's diagnostics (see CrossCode facts). "Check now" listed `cc.save: would DOWNLOAD`; PLAY then downloaded it (checksum matched). Upload not yet run (off by default) |
-| 3 | Steam achievements | on the Nova (2026-10-21): the read works ("1 of 86 unlocked on Steam"), and at boot the game reported the save's one trophy, which Steam already had, so nothing was stored. **An actual unlock (the store) has not run yet**: it needs a trophy Steam does not have. See Achievements below |
+| 2 | Steam Cloud saves for `cc.save` | mapping set 2026-10-21 from the Nova's diagnostics (see CrossCode facts). "Check now" listed `cc.save: would DOWNLOAD`; PLAY then downloaded it (checksum matched). **Upload confirmed on the Nova** (2026-10-21): with uploads switched on for the test, PLAY uploaded 3 files (`cc.save`, `.backup`, `.backup2`), first keeping the Cloud's previous `cc.save` (132 429 bytes, from 2026-10-13) in `SaveBackups/<stamp>-steam`; the sync after the game found nothing left to do. Uploads were switched back off (AerithMetiq's setting) |
+| 3 | Steam achievements | on the Nova (2026-10-21): the read works ("1 of 86 unlocked on Steam"), and at boot the game reported the save's one trophy, which Steam already had, so nothing was stored. The store works too: after the Rhombus Square trophy Steam had 2 of 86, and AerithMetiq saw it on Steam (2026-10-21). See Achievements below |
 | - | Match CrossDroid's look | from screenshots of the running CrossDroid on the Nova (hard rule 2) |
 
 ## CrossCode facts (from alabaster-android's README and host profile)
@@ -94,6 +94,17 @@ belongs in the other. What differs here, deliberately:
   1517030, 1585790 and their macOS twins). Branches besides `public`: `nwjs_old` ("Might crash less
   often."), `speedrunner`, `aprilfools2016`. The downloader does not assume a depot: it reads manifests
   until one lists `assets/node-webkit.html`.
+- **DLC and the depots for every platform** (`GameDownload.extras`, 2026-10-21): after the main depot,
+  every other depot of the app with a public manifest and no `oslist` is added, DLC included, and
+  their files under `assets/` are merged in (an added depot's file replaces the main one's at the same
+  path; `GameDownload.merge`). A depot Steam refuses a key for (DLC not owned) is left out and logged.
+  `installed.txt` lists them as `extra=<depot>:<manifest>,…`. The game needs no ownership check of its
+  own: it enables every folder in `assets/extension/` that holds its `<name>.json`. The base depot
+  carries the four free bonus extensions (`fish-gear`, `flying-hedgehag`, `scorpion-robo`,
+  `snowman-tank`). On AerithMetiq's account (Nova, "Verify game files"): 960310 (6 files) and 1517030
+  (200 files, 39 MiB) added `post-game` ("A New Home") and `ninja-skin`, and the game then listed
+  both as enabled (`ig.extensions.getExtensionList()`); 1585790 was refused (DLC not owned), and so was
+  916190 (`AccessDenied`, though it names no DLC; what it holds is unknown).
 - **Steam Cloud** (`ufs`): quota 100 MB, at most **5** files, one rule: root `WinAppDataLocal`, path `.`,
   pattern `cc.sav*`. Root overrides put it in `%LOCALAPPDATA%\CrossCode` (Windows),
   `MacAppSupport/CrossCode/Default` (macOS) and `~/.config/CrossCode/Default` (Linux). Cloud names carry
@@ -119,7 +130,8 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   `PortBridge.vibrate`; `host/ShakeVibrator.kt` maps it (`Shake.of`: length capped at 600 ms, an
   open-ended shake is one 150 ms pulse, amplitude power/10) and vibrates as game media, not touch
   feedback. Verified on the Nova by firing a test shake over CDP at the title screen: 300 ms, finished,
-  `Usage=MEDIA`. Sprint and dash-on-tap have not been tried in play yet.
+  `Usage=MEDIA`. AerithMetiq reports that always sprint works (2026-10-21); dash-on-tap has not been
+  tried in play yet.
 - **Hide the touch controls in cutscenes, conversations and Direct Links** (`KEY_HIDE_IN_SCENES`, on
   by default): `cc-shim.js` (`watchScenes`) checks `sc.model.isCutscene()`, `sc.message.blocking` (a
   dialogue or choice waiting for the player) and `sc.message.isSideMessageVisible()` (Direct Links)
