@@ -24,9 +24,10 @@ class SteamCloudFilesTest {
 
     @Test
     fun `a Cloud name is its prefix and its file name, which CloudSaves maps to the saves folder`() {
-        val name = SteamCloudFiles.fullName(listOf("%WinAppDataLocal%"), 0, "Default/System.save")
-        assertEquals("%WinAppDataLocal%Default/System.save", name)
-        assertEquals("Default/System.save", CloudSaves.relative(name))
+        val name = SteamCloudFiles.fullName(emptyList(), 0, "%WinAppDataLocal%cc.save")
+        assertEquals("CrossCode's Cloud names carry the token themselves", "%WinAppDataLocal%cc.save", name)
+        assertEquals("cc.save", CloudSaves.relative(name))
+        assertEquals("%WinAppDataLocal%cc.save", SteamCloudFiles.fullName(listOf("%WinAppDataLocal%"), 0, "cc.save"))
         assertEquals("no prefix listed", "cc.save", SteamCloudFiles.fullName(emptyList(), 0, "cc.save"))
     }
 

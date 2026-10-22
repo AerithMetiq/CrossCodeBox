@@ -20,15 +20,26 @@ class CloudSavesTest {
             listOfNotNull(base?.let { "Default/System.save" to it }).toMap(),
         ).single().action
 
-    /** Names as the device's diagnostics report listed them (2026-10-12). */
+    /** CrossCode's one Cloud file as the Nova's diagnostics listed it (2026-10-21), and its `cc.sav*` rule. */
     @Test
     fun cloudNamesMapToTheSavesFolder() {
-        assertEquals("Default/Save_ID_auto.save", CloudSaves.relative("%WinAppDataLocal%Default/Save_ID_auto.save"))
-        assertEquals("%WinAppDataLocal%Backups2/System.save", CloudSaves.cloudName("Backups2/System.save"))
-        assertNull(CloudSaves.relative("%GameInstall%Default/System.save"))
-        assertNull(CloudSaves.relative("%WinAppDataLocal%../../etc/passwd"))
-        assertNull(CloudSaves.relative("%WinAppDataLocal%Default//System.save"))
+        assertEquals("cc.save", CloudSaves.relative("%WinAppDataLocal%cc.save"))
+        assertEquals("cc.save.bak", CloudSaves.relative("%WinAppDataLocal%cc.save.bak"))
+        assertEquals("%WinAppDataLocal%cc.save", CloudSaves.cloudName("cc.save"))
+        assertNull(CloudSaves.relative("%GameInstall%cc.save"))
+        assertNull("not the cc.sav* pattern", CloudSaves.relative("%WinAppDataLocal%settings.json"))
+        assertNull("no folders", CloudSaves.relative("%WinAppDataLocal%Default/cc.save"))
+        assertNull(CloudSaves.relative("%WinAppDataLocal%../cc.save"))
         assertNull(CloudSaves.relative("%WinAppDataLocal%"))
+    }
+
+    @Test
+    fun onlyTheGamesSaveFilesTakePart() {
+        assertEquals(true, CloudSaves.isSaveName("cc.save"))
+        assertEquals(false, CloudSaves.isSaveName("pad-layout.json"))
+        assertEquals(false, CloudSaves.isSaveName("ada-diagnostics.log"))
+        assertEquals(false, CloudSaves.isSaveName("cc.save.cloudtmp"))
+        assertEquals(false, CloudSaves.isSaveName("Backups/cc.save"))
     }
 
     @Test

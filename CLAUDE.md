@@ -66,8 +66,8 @@ belongs in the other. What differs here, deliberately:
 
 | Milestone | Scope | State |
 |---|---|---|
-| 1 | Launcher, sign-in, download of `assets/`, the host with `cc-shim.js` | written 2026-10-21, unit-tested, **not yet run on a device** |
-| 2 | Steam Cloud saves for `cc.save` | **blocked on CrossCode's Cloud layout**: `steam/CloudSaves.kt` still has Alabaster Dawn's mapping (`%WinAppDataLocal%` + path). Read the real names from Settings → Steam diagnostics on the Nova and set the mapping before anyone syncs. Uploads are off by default, so nothing is written to Steam meanwhile |
+| 1 | Launcher, sign-in, download of `assets/`, the host with `cc-shim.js` | **runs on the Nova** (2026-10-21): download 697 MiB / 4 722 files in 70 s from depot 368341 (the Windows depot; the shared 916190 does not hold the entry page), boot to the title screen with no missing files, `platform=Desktop`, canvas 1136x640, canvas 2D (`gl=none`). Gameplay, audio and pad mapping not yet tried |
+| 2 | Steam Cloud saves for `cc.save` | mapping set 2026-10-21 from the Nova's diagnostics (see CrossCode facts). "Check now" listed `cc.save: would DOWNLOAD`; PLAY then downloaded it (checksum matched). Upload not yet run (off by default) |
 | 3 | Steam achievements | planned: `cc-shim.js` stubs greenworks (`activateAchievement: noop`); route it through `PortBridge` to the app and on to Steam's user stats, opt-in like the playing status |
 | - | Match CrossDroid's look | from screenshots of the running CrossDroid on the Nova (hard rule 2) |
 
@@ -82,9 +82,18 @@ belongs in the other. What differs here, deliberately:
 - Saves: the engine writes `<dataPath>/cc.save` with `dataPath = /saves/Default`, so `userdata/Default/
   cc.save` here. Desktop: `~/.config/CrossCode/Default/cc.save` on Linux; `%LOCALAPPDATA%\CrossCode` on
   Windows (the game also looks inside its `User Data\Default`).
-- Depots seen in an earlier probe (`GameDownloadTest`): 368341 (Windows), 368346 (Linux, no public
-  manifest), 916190 (no OS: likely the shared one), plus Steamworks redist and DLC. The downloader does
-  not assume one: it reads manifests until one lists `assets/node-webkit.html`.
+- Depots (Nova's diagnostics, 2026-10-21, public build 20004663): 916190 `os=any` 333.0 MiB (shared),
+  368341/368345/368349 Windows (~955-975 MiB), 368342/368343 Linux 32/64 (1.14 GiB), 368344 macOS,
+  368346-368348 with no public manifest, Steamworks redist (228987, 228990) and DLC depots (960310,
+  1517030, 1585790 and their macOS twins). Branches besides `public`: `nwjs_old` ("Might crash less
+  often."), `speedrunner`, `aprilfools2016`. The downloader does not assume a depot: it reads manifests
+  until one lists `assets/node-webkit.html`.
+- **Steam Cloud** (`ufs`): quota 100 MB, at most **5** files, one rule: root `WinAppDataLocal`, path `.`,
+  pattern `cc.sav*`. Root overrides put it in `%LOCALAPPDATA%\CrossCode` (Windows),
+  `MacAppSupport/CrossCode/Default` (macOS) and `~/.config/CrossCode/Default` (Linux). Cloud names carry
+  the token themselves, with no path prefix: `%WinAppDataLocal%cc.save` (AerithMetiq's Cloud held just
+  that file, 129.3 KiB). `CloudSaves` maps `%WinAppDataLocal%<name>` to `userdata/Default/<name>` and
+  syncs only top-level `cc.sav*` files (`CloudSaves.isSaveName`).
 
 ## Build and test
 

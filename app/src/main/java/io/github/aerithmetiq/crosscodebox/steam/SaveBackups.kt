@@ -7,7 +7,7 @@ import java.util.Locale
 
 /**
  * The local save backups: a folder per moment (`yyyyMMdd-HHmmss`), each holding the save files that
- * were about to be replaced or removed, under their names below `Saves/`. A sync makes one before it
+ * were about to be replaced or removed, under their names in the saves folder. A sync makes one before it
  * changes this device's saves ([CloudSync]); [restore] puts one back. Files only, no Steam.
  */
 object SaveBackups {

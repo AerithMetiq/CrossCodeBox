@@ -130,7 +130,9 @@ class CloudSync(
          * never finished, and must not be weighed against (or sent over) a real one.
          */
         fun local(saves: File): List<SaveFile> =
-            saves.walkTopDown().filter { it.isFile && it.length() > 0 && !it.name.endsWith(".cloudtmp") }.map {
+            saves.walkTopDown().filter {
+                it.isFile && it.length() > 0 && CloudSaves.isSaveName(it.relativeTo(saves).invariantSeparatorsPath)
+            }.map {
                 SaveFile(
                     name = it.relativeTo(saves).invariantSeparatorsPath,
                     sha = SteamCloudFiles.sha1(it.readBytes()),

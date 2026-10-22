@@ -6,7 +6,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-/** One save file on one side (this device, or Steam Cloud). [name] is relative to `Saves/`, with `/`. */
+/** One save file on one side (this device, or Steam Cloud). [name] is relative to the saves folder, with `/`. */
 data class SaveFile(val name: String, val sha: String, val size: Long, val modifiedSec: Long)
 
 /** What a sync does with one save file. */
@@ -39,17 +39,25 @@ data class SaveStep(val name: String, val action: SaveAction, val local: SaveFil
 object CloudSaves {
 
     /**
-     * Alabaster Dawn's Steam Cloud names start with this token, then the path under the game's
-     * `Saves/` folder (`%WinAppDataLocal%Default/System.save`); see the `ufs` rules in CLAUDE.md.
+     * CrossCode's Steam Cloud rules (`ufs`, read from Steam on 2026-10-21): root `WinAppDataLocal`, path
+     * `.`, pattern `cc.sav*`, at most 5 files. A Cloud name is therefore this token and the file's name
+     * with no folder (`%WinAppDataLocal%cc.save`). Steam puts the file in `%LOCALAPPDATA%\CrossCode` on
+     * Windows and `~/.config/CrossCode/Default` on Linux; here it is the saves folder,
+     * `userdata/Default/` ([io.github.aerithmetiq.crosscodebox.GameFiles.saves]).
      */
     const val ROOT = "%WinAppDataLocal%"
 
-    /** The name under `Saves/` for a Cloud name, or null when it is not one of this game's saves. */
+    /**
+     * Whether a name in the saves folder is one Steam Cloud keeps: `cc.sav*`, at the top of the folder.
+     * The sync's own half-written `.cloudtmp` files are not.
+     */
+    fun isSaveName(name: String): Boolean =
+        name.startsWith("cc.sav") && '/' !in name && '\\' !in name && !name.endsWith(".cloudtmp")
+
+    /** The name in the saves folder for a Cloud name, or null when it is not one of this game's saves. */
     fun relative(cloudName: String): String? {
         if (!cloudName.startsWith(ROOT)) return null
-        val rel = cloudName.removePrefix(ROOT).replace('\\', '/')
-        if (rel.isEmpty() || rel.split('/').any { it.isEmpty() || it == "." || it == ".." }) return null
-        return rel
+        return cloudName.removePrefix(ROOT).takeIf(::isSaveName)
     }
 
     fun cloudName(relative: String): String = ROOT + relative
