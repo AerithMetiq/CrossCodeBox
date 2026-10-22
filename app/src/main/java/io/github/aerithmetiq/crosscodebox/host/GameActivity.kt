@@ -131,6 +131,9 @@ class GameActivity : Activity() {
     @Volatile
     private var previousRecordCarried = false
 
+    /** CrossCodeBox: the vibrator, for the game's screen shakes. */
+    private val shake by lazy { ShakeVibrator(this) }
+
     /** The app's own log and frame clock; everything device-specific is reported through it. */
     private lateinit var diag: Diag
     private var assetHandler: GameAssetHandler? = null
@@ -358,6 +361,9 @@ class GameActivity : Activity() {
                 port.onShaderSelfTestDone = { runOnUiThread { if (!isFinishing) showDiagnostics() } }
                 /* CrossCodeBox: an achievement the game awarded goes to the launcher's process, which
                  * holds the Steam login (see AchievementService). */
+                if (prefs.getBoolean(GameSettings.KEY_VIBRATE, GameSettings.VIBRATE_DEFAULT)) {
+                    port.onVibrate = { ms, strength -> shake.vibrate(ms, strength) }
+                }
                 port.onAchievement = { name ->
                     diag.line("achievement awarded: $name")
                     io.github.aerithmetiq.crosscodebox.AchievementService.unlock(applicationContext, name)
@@ -394,6 +400,8 @@ class GameActivity : Activity() {
             touchControls = prefs.getBoolean(GameSettings.KEY_TOUCH_CONTROLS, true)
             hideWithExternalInput = this@GameActivity.hideWithExternalInput
             dynamicSticks = this@GameActivity.dynamicSticks
+            alwaysSprint = prefs.getBoolean(GameSettings.KEY_ALWAYS_SPRINT, GameSettings.ALWAYS_SPRINT_DEFAULT)
+            dashOnTap = prefs.getBoolean(GameSettings.KEY_DASH_ON_TAP, GameSettings.DASH_ON_TAP_DEFAULT)
             layout = padLayoutStore?.load() ?: PadLayout()
             onToggle = { prefs.edit().putBoolean(KEY_PAD, it).apply() }
             onLayoutChanged = { padLayoutStore?.save(it) }

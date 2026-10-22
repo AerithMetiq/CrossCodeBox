@@ -128,6 +128,19 @@ class SettingsActivity : AppCompatActivity() {
         val first = toggle("Touch controls on screen", GameSettings.KEY_TOUCH_CONTROLS, true)
         toggle("Hide the touch controls while a controller is used", GameSettings.KEY_HIDE_EXTERNAL_INPUT, true)
         toggle("Dynamic sticks (touch anywhere)", GameSettings.KEY_DYNAMIC_STICKS, true)
+        /* CrossCodeBox: CrossCode's own touch and vibration options. */
+        toggle("Always sprint with the touch stick", GameSettings.KEY_ALWAYS_SPRINT, GameSettings.ALWAYS_SPRINT_DEFAULT)
+        toggle("Dash only on a fresh tap of L1/L2", GameSettings.KEY_DASH_ON_TAP, GameSettings.DASH_ON_TAP_DEFAULT)
+        toggle("Vibrate when the screen shakes", GameSettings.KEY_VIBRATE, GameSettings.VIBRATE_DEFAULT)
+        page.addView(
+            Screens.body(
+                ctx,
+                "Always sprint: the touch stick runs at full speed however far it is pushed (CrossCode walks " +
+                    "below about 80 % tilt). Dash only on a fresh tap: sliding off L1/L2 and back does not dash " +
+                    "again. Vibrate: follows the game's own Rumble Strength option.",
+                topDp = 0,
+            )
+        )
         toggle("Show FPS / battery / temperature", GameSettings.KEY_STATS, false)
         /* A choice made here ends the log's automatic switch-off, as a tap in the game's menu does. */
         toggle("Keep a log with the saves", LogFile.PREF_KEY, true) { it.putBoolean(LogFile.PREF_SET_KEY, true) }

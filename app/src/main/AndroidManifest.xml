@@ -11,6 +11,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- The game's screen shakes, felt (Settings → Game, on by default). -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <!-- appCategory="game": tells Android this is a game, so a device's game mode and performance
          profile treat it as one. The game is limited by one busy thread that has to get a fast core. -->
     <application

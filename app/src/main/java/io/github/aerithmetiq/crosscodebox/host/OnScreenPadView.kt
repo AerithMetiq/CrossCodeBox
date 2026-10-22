@@ -108,6 +108,16 @@ class OnScreenPadView(context: Context) : View(context) {
             invalidate()
         }
 
+    /** CrossCodeBox: see [OnScreenPadModel.alwaysSprint]. */
+    var alwaysSprint: Boolean
+        get() = model.alwaysSprint
+        set(value) { model.alwaysSprint = value }
+
+    /** CrossCodeBox: see [OnScreenPadModel.dashOnTap]. */
+    var dashOnTap: Boolean
+        get() = model.dashOnTap
+        set(value) { model.dashOnTap = value }
+
     /** True while a controller, mouse or keyboard is being used: the controls hide until it goes quiet. */
     var externalInputInUse = false
         private set

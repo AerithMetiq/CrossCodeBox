@@ -1,7 +1,8 @@
 /*
  * From alabaster-android (https://github.com/moronigranja/alabaster-android), commit f1cedd5.
- * MIT License, Copyright (c) 2026 Moroni Granja. Changed: the package name, and with dynamic sticks
- * the stock D-pad and L1/L2 mirror the face buttons and R1/R2 (see computeBase).
+ * MIT License, Copyright (c) 2026 Moroni Granja. Changed: the package name; with dynamic sticks the
+ * stock D-pad and L1/L2 mirror the face buttons and R1/R2 (see computeBase); and CrossCodeBox's
+ * [OnScreenPadModel.alwaysSprint] and [OnScreenPadModel.dashOnTap].
  */
 package io.github.aerithmetiq.crosscodebox.host
 
@@ -60,6 +61,21 @@ class OnScreenPadModel {
             field = value
             placeAll()
         }
+
+    /**
+     * CrossCodeBox: the left stick reports full tilt whenever it is out of its dead zone, so the player
+     * runs wherever the thumb is. CrossCode walks below 80 % tilt (its speed is tilt² / 0.64 there).
+     */
+    var alwaysSprint = false
+
+    /**
+     * CrossCodeBox: L1 and L2 (CrossCode's dash, per its "gamepad-dash" option) press only on a fresh
+     * touch. Otherwise a finger that slides off and back on presses them again, which is a second dash.
+     */
+    var dashOnTap = false
+
+    /* Per control: whether the finger on it has left it since it went down (see [dashOnTap]). */
+    private val leftSinceDown = BooleanArray(CONTROLS)
 
     /** True while the layout editor is open: the pill row changes and no pad state is published. */
     var editing = false
@@ -227,6 +243,7 @@ class OnScreenPadModel {
             if (pointerOf[control] != NO_POINTER) return false
             pointerOf[control] = id
             controlOf[id] = control
+            leftSinceDown[control] = false
             apply(control, x, y)
             return true
         }
@@ -441,13 +458,20 @@ class OnScreenPadModel {
             val dy = y - shape.y
             val r = hypot(dx, dy)
             val dead = shape.radius * STICK_DEADZONE
-            val magnitude = if (r <= dead) 0f else min((r - dead) / (shape.radius - dead), 1f)
+            val tilt = if (r <= dead) 0f else min((r - dead) / (shape.radius - dead), 1f)
+            val magnitude = if (alwaysSprint && control == LEFT_STICK && tilt > 0f) 1f else tilt
             val base = if (control == LEFT_STICK) 0 else 2
             axes[base] = if (r == 0f) 0f else magnitude * dx / r
             axes[base + 1] = if (r == 0f) 0f else magnitude * dy / r
             return
         }
-        buttons[buttonIndex(control)] = inside(control, x, y)
+        val inside = inside(control, x, y)
+        if (dashOnTap && (control == L1 || control == L2)) {
+            if (!inside) leftSinceDown[control] = true
+            buttons[buttonIndex(control)] = inside && !leftSinceDown[control]
+            return
+        }
+        buttons[buttonIndex(control)] = inside
     }
 
     private fun clear(control: Int) {

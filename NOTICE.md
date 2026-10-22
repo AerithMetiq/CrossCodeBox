@@ -70,8 +70,9 @@ Reused, each file carrying that notice at its top:
   game and saves are plain files here, not folders picked through Android's storage framework), 
   `SideMenuView.kt` (no game-selection row; it can be driven by a controller; a "Touch controls"
   switch), `OnScreenPadView.kt` (that switch, and an idle timer that is not re-posted on every
-  input event), `OnScreenPadModel.kt` and its test (with dynamic sticks the D-pad side mirrors the
-  face-button side), `PortBridge.kt` (`unlockAchievement`, for CrossCodeBox's achievements),
+  input event; always sprint and dash on tap), `OnScreenPadModel.kt` and its test (with dynamic
+  sticks the D-pad side mirrors the face-button side; always sprint and dash on tap), `PortBridge.kt`
+  (`unlockAchievement` and `vibrate`, for CrossCodeBox's achievements and screen-shake vibration),
   `FpsLimit.kt` and
   its test (the rates are 30/45/60/90/120, limited to what the screen can show) and `ShaderPrecision.kt` (the light, fog and combine
   shaders are served at high precision as well as the GUI's). `GameActivity.kt` also acts on the Back
@@ -84,7 +85,8 @@ Reused, each file carrying that notice at its top:
 * The in-game menu's icons (`ic_menu_*.xml`).
 
 `host/GameSettings.kt`, `host/InProcessRenderer.kt`, `host/BundleBytes.kt` and their tests (and
-`host/GamepadPayloadTest.kt`) are this project's own and are not from alabaster-android.
+`host/GamepadPayloadTest.kt`, `host/ShakeVibrator.kt` and its test) are this project's own and are not
+from alabaster-android.
 
 The MIT License that covers that code:
 

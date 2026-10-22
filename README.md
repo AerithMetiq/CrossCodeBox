@@ -41,6 +41,9 @@ title screen on a phone.
   build, and verify or delete from Settings.
 - **In-game menu** (Back): pauses the game; controller navigation; touch controls on or off; FPS
   readout; frame-rate limit (30/45/60, plus 90/120 on screens that have them).
+- **Touch controls for CrossCode** (Settings → Game): always sprint with the touch stick, dash only on
+  a fresh tap of L1/L2, and vibration when the screen shakes (following the game's Rumble Strength).
+- **Steam achievements**, unlocked as the game awards them (on by default; Settings → Steam).
 - **Controller-first launcher**: every control is reachable with a D-pad, with a clear focus ring.
 - **Playing status** (optional, off by default): show as playing CrossCode on Steam.
 - **Steam diagnostics** (Settings): a read-only report of CrossCode's depots, Steam Cloud rules and your

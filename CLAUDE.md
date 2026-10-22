@@ -101,6 +101,26 @@ belongs in the other. What differs here, deliberately:
   that file, 129.3 KiB). `CloudSaves` maps `%WinAppDataLocal%<name>` to `userdata/Default/<name>` and
   syncs only top-level `cc.sav*` files (`CloudSaves.isSaveName`).
 
+## Touch and vibration options (CrossDroid's, rebuilt 2026-10-21)
+
+Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, `KEY_DASH_ON_TAP`,
+`KEY_VIBRATE`; defaults on/off/on, as in AerithMetiq's CrossDroid). From the game's code:
+
+- **Always sprint** (`OnScreenPadModel.alwaysSprint`): CrossCode sets the walk speed from the left
+  stick's tilt `f` as `f > 0.8 ? 1 : f² / 0.64`, so the touch stick reports full tilt, in its
+  direction, whenever it is out of its dead zone. Physical sticks are untouched.
+- **Dash only on a fresh tap** (`OnScreenPadModel.dashOnTap`): dash is a *press* of L1, or L2 with the
+  game's "gamepad-dash" option (`_getDashButton`). Our pad never presses a button a finger slides onto
+  (each finger belongs to what it first touched), so CrossDroid's "swiped into the dash area" case
+  cannot happen; what the option stops is a finger sliding off L1/L2 and back, which re-presses it.
+- **Vibrate when the screen shakes**: every shake goes through `ig.rumble.addRumble(handle)`, whose
+  `power` (0.5-15) already follows the game's Rumble Strength option and whose `_duration` is in
+  seconds (-1 until stopped). `cc-shim.js` (`hookRumble`) wraps it once `ig.rumble` exists and calls
+  `PortBridge.vibrate`; `host/ShakeVibrator.kt` maps it (`Shake.of`: length capped at 600 ms, an
+  open-ended shake is one 150 ms pulse, amplitude power/10) and vibrates as game media, not touch
+  feedback. Verified on the Nova by firing a test shake over CDP at the title screen: 300 ms, finished,
+  `Usage=MEDIA`. Sprint and dash-on-tap have not been tried in play yet.
+
 ## Achievements
 
 - CrossCode reports achievements through greenworks. `cc-shim.js` reports NW.js 0.86.0, so the engine

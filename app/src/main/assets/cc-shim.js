@@ -5,7 +5,8 @@
  * of on every frame (see pollGamepads); the frame-rate gate keeps a running deadline, so a rate the
  * screen cannot divide evenly averages that rate instead of dropping to the next one down; and the
  * pad's JSON is parsed only when the app sends a different one. CrossCodeBox's own: greenworks'
- * activateAchievement passes the achievement to the app, which can unlock it on Steam.
+ * activateAchievement passes the achievement to the app, which can unlock it on Steam; and the
+ * game's screen shakes are passed to the app to vibrate (hookRumble).
  */
 /*
  * CrossCode — Android WebView shim (this host's CrossCode profile).
@@ -351,6 +352,31 @@
         },
         clearAchievement: noop, activateGameOverlayToStore: noop
     };
+
+    /* CrossCodeBox: the game's screen shakes, felt. Every shake goes through `ig.rumble.addRumble`
+     * with a RumbleHandle whose `power` is the game's own strength (0.5 to 15, already scaled by its
+     * Rumble Strength option) and whose `_duration` is in seconds (-1: until stopped). The addon only
+     * exists once the game has started, so it is looked for every half second until it is there. */
+    (function hookRumble() {
+        if (!HAS_BRIDGE) return;
+        var timer = setInterval(function () {
+            var rumble = window.ig && window.ig.rumble;
+            if (!rumble || typeof rumble.addRumble !== "function") return;
+            clearInterval(timer);
+            var original = rumble.addRumble;
+            rumble.addRumble = function (handle) {
+                try {
+                    var known = this.rumbles && this.rumbles.indexOf(handle) !== -1;
+                    if (!known && handle && handle.power > 0) {
+                        var d = handle._duration;
+                        var ms = d > 0 ? Math.round(d * 1000) : -1;
+                        window.PortBridge.vibrate(ms, handle.power);
+                    }
+                } catch (e) { /* a vibration must never break the game */ }
+                return original.apply(this, arguments);
+            };
+        }, 500);
+    })();
 
     window.require = function (name) {
         switch (name) {

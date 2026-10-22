@@ -30,6 +30,15 @@ object GameSettings {
     const val KEY_VIEW_ALIGN = "view_align"
     /** Whether the frame-rate / resolution / battery / temperature readout is drawn. */
     const val KEY_STATS = "stats_overlay"
+    /* CrossCodeBox's own touch and vibration options (Settings → Game), read when the game starts.
+     * Defaults as in AerithMetiq's CrossDroid settings. */
+    const val KEY_ALWAYS_SPRINT = "always_sprint"
+    const val ALWAYS_SPRINT_DEFAULT = true
+    const val KEY_DASH_ON_TAP = "dash_on_tap"
+    const val DASH_ON_TAP_DEFAULT = false
+    const val KEY_VIBRATE = "vibrate_on_shake"
+    const val VIBRATE_DEFAULT = true
+
     /** Whether the frame rate is capped, and at what (see [FpsLimit]). */
     const val KEY_LIMIT_FPS = "limit_fps"
     const val KEY_FPS_LIMIT = "fps_limit"
