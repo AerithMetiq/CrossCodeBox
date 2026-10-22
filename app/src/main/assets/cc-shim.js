@@ -374,6 +374,16 @@
      * "Sipncvt !Trvbsf" for "Rhombus Square"). With smoothing off, the same read gives the file's
      * pixels. So an unscaled draw at whole pixels is done with smoothing off; any other draw, and a
      * context that already has it off (the game's screen), is left as it is. */
+    /* CrossCodeBox: the bars around the picture black. CrossCode's style.css paints `html, body` #080808,
+     * a grey that shows above and below the 16:9 picture on a 4:3 screen (AerithMetiq, 2026-10-22). */
+    (function blackBars() {
+        try {
+            var style = document.createElement("style");
+            style.textContent = "html, body { background-color: #000 !important; }";
+            (document.head || document.documentElement).appendChild(style);
+        } catch (e) { /* cosmetic only */ }
+    })();
+
     (function exactUnscaledDraws() {
         var proto = window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype;
         if (!proto || typeof proto.drawImage !== "function") return;

@@ -33,4 +33,11 @@ class TitleArtTest {
         assertNull(TitleArt.topBand(4, rows(false, false, false, false)))
         assertNull(TitleArt.topBand(4, rows(true, true, true, true)))
     }
+
+    @Test
+    fun `the logo is cut to the columns that hold anything`() {
+        val inked = booleanArrayOf(false, false, true, false, true, false)
+        assertEquals(2..4, TitleArt.span(inked.size) { inked[it] })
+        assertEquals(null, TitleArt.span(3) { false })
+    }
 }

@@ -30,6 +30,17 @@ object TitleArt {
         return band.takeIf { it.count() <= height * MAX_SHARE }
     }
 
+    /**
+     * The columns from the first to the last that hold anything, in a band [width] columns wide; null
+     * when none does. The logo does not fill the atlas's width (columns 17-273 of 352), so the band is
+     * cut to this too, or the logo sits left of centre on the launcher.
+     */
+    fun span(width: Int, inked: (Int) -> Boolean): IntRange? {
+        val first = (0 until width).firstOrNull(inked) ?: return null
+        val last = (width - 1 downTo first).first(inked)
+        return first..last
+    }
+
     /** Whether an ARGB pixel is lit (not black), the test for a row that holds anything. */
     fun lit(pixel: Int): Boolean = maxOf((pixel shr 16) and 0xFF, (pixel shr 8) and 0xFF, pixel and 0xFF) > 8
 

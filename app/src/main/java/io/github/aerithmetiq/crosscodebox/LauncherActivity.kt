@@ -69,6 +69,10 @@ import java.util.concurrent.CompletableFuture
  */
 class LauncherActivity : AppCompatActivity() {
 
+    /** B is Back on the first press (see [Screens.bIsBack]). */
+    override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean =
+        Screens.bIsBack(this, event) || super.dispatchKeyEvent(event)
+
     private lateinit var store: LoginStore
 
     private lateinit var signedOut: View
@@ -562,8 +566,14 @@ class LauncherActivity : AppCompatActivity() {
         } ?: return null
         val pixels = IntArray(w * band.count())
         atlas.getPixels(pixels, 0, w, 0, band.first, w, band.count())
-        TitleArt.blackToAlpha(pixels)
-        return Bitmap.createBitmap(pixels, w, band.count(), Bitmap.Config.ARGB_8888)
+        /* Cut to the logo's own columns too, so it is centred over the line below it. */
+        val rows = band.count()
+        val cols = TitleArt.span(w) { x -> (0 until rows).any { TitleArt.lit(pixels[it * w + x]) } } ?: return null
+        val cw = cols.count()
+        val cut = IntArray(cw * band.count())
+        for (y in 0 until band.count()) System.arraycopy(pixels, y * w + cols.first, cut, y * cw, cw)
+        TitleArt.blackToAlpha(cut)
+        return Bitmap.createBitmap(cut, cw, band.count(), Bitmap.Config.ARGB_8888)
     }
 
     /** Decodes a picture no larger than the launcher can use, so big art does not waste memory. */
