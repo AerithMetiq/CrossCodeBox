@@ -120,6 +120,18 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   open-ended shake is one 150 ms pulse, amplitude power/10) and vibrates as game media, not touch
   feedback. Verified on the Nova by firing a test shake over CDP at the title screen: 300 ms, finished,
   `Usage=MEDIA`. Sprint and dash-on-tap have not been tried in play yet.
+- **Hide the touch controls in cutscenes, conversations and Direct Links** (`KEY_HIDE_IN_SCENES`, on
+  by default): `cc-shim.js` (`watchScenes`) checks `sc.model.isCutscene()`, `sc.message.blocking` (a
+  dialogue or choice waiting for the player) and `sc.message.isSideMessageVisible()` (Direct Links)
+  four times a second and calls `PortBridge.gameScene` when the answer changes; `OnScreenPadView.
+  sceneHides` then hides the controls and the pill row (not while the editor is open) and stops
+  consuming touches, so a tap reaches the game, which advances text and picks choices on a tap.
+- **Touch controls transparency** (`KEY_TOUCH_TRANSPARENCY`, 0-100, default 0): the whole overlay's
+  alpha (`OnScreenPadView.transparency`); at 100 it is invisible and still works. A slider in
+  Settings → Game.
+- Not seen on screen yet: AerithMetiq has touch controls off on the Nova, and their settings are not
+  changed for tests. Checked: the shim reads the three states at the title screen (all false) and
+  the bridge call goes through.
 
 ## Achievements
 

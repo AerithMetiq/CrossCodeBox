@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.widget.CheckBox
+import android.widget.SeekBar
 import android.widget.LinearLayout
 import io.github.aerithmetiq.crosscodebox.host.FpsLimit
 import io.github.aerithmetiq.crosscodebox.host.GameSettings
@@ -132,12 +133,37 @@ class SettingsActivity : AppCompatActivity() {
         toggle("Always sprint with the touch stick", GameSettings.KEY_ALWAYS_SPRINT, GameSettings.ALWAYS_SPRINT_DEFAULT)
         toggle("Dash only on a fresh tap of L1/L2", GameSettings.KEY_DASH_ON_TAP, GameSettings.DASH_ON_TAP_DEFAULT)
         toggle("Vibrate when the screen shakes", GameSettings.KEY_VIBRATE, GameSettings.VIBRATE_DEFAULT)
+        toggle("Hide the touch controls in cutscenes, conversations and Direct Links",
+            GameSettings.KEY_HIDE_IN_SCENES, GameSettings.HIDE_IN_SCENES_DEFAULT)
+        fun transparencyLabel(value: Int) = "Touch controls transparency: $value %"
+        val transparencyText = Screens.body(ctx, transparencyLabel(
+            prefs.getInt(GameSettings.KEY_TOUCH_TRANSPARENCY, GameSettings.TOUCH_TRANSPARENCY_DEFAULT)), topDp = 8)
+            .apply { textSize = 15f; setTextColor(getColor(R.color.text_primary)) }
+        page.addView(transparencyText)
+        page.addView(SeekBar(ctx).apply {
+            max = 100
+            progress = prefs.getInt(GameSettings.KEY_TOUCH_TRANSPARENCY, GameSettings.TOUCH_TRANSPARENCY_DEFAULT)
+            keyProgressIncrement = 5
+            isFocusable = true
+            progressTintList = ColorStateList.valueOf(getColor(R.color.accent))
+            thumbTintList = ColorStateList.valueOf(getColor(R.color.accent))
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(bar: SeekBar, value: Int, fromUser: Boolean) {
+                    transparencyText.text = transparencyLabel(value)
+                    if (fromUser) prefs.edit().putInt(GameSettings.KEY_TOUCH_TRANSPARENCY, value).commit()
+                }
+                override fun onStartTrackingTouch(bar: SeekBar) {}
+                override fun onStopTrackingTouch(bar: SeekBar) {}
+            })
+        })
         page.addView(
             Screens.body(
                 ctx,
                 "Always sprint: the touch stick runs at full speed however far it is pushed (CrossCode walks " +
                     "below about 80 % tilt). Dash only on a fresh tap: sliding off L1/L2 and back does not dash " +
-                    "again. Vibrate: follows the game's own Rumble Strength option.",
+                    "again. Vibrate: follows the game's own Rumble Strength option. Hidden in cutscenes, a tap " +
+                    "goes to the game, which advances its text on a tap. Transparency: 0 is solid, 100 invisible " +
+                    "(the controls still work).",
                 topDp = 0,
             )
         )

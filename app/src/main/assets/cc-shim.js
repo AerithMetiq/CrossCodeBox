@@ -6,7 +6,8 @@
  * screen cannot divide evenly averages that rate instead of dropping to the next one down; and the
  * pad's JSON is parsed only when the app sends a different one. CrossCodeBox's own: greenworks'
  * activateAchievement passes the achievement to the app, which can unlock it on Steam; and the
- * game's screen shakes are passed to the app to vibrate (hookRumble).
+ * game's screen shakes are passed to the app to vibrate (hookRumble); and cutscenes, conversations
+ * and Direct Links are reported so the touch controls can step aside (watchScenes).
  */
 /*
  * CrossCode — Android WebView shim (this host's CrossCode profile).
@@ -376,6 +377,25 @@
                 return original.apply(this, arguments);
             };
         }, 500);
+    })();
+
+    /* CrossCodeBox: whether the game is in a cutscene (`sc.model.isCutscene()`), a conversation or choice
+     * waiting for the player (`sc.message.blocking`) or a Direct Link (`sc.message.isSideMessageVisible()`).
+     * Checked four times a second and sent only when it changes; the app hides the touch controls then. */
+    (function watchScenes() {
+        if (!HAS_BRIDGE) return;
+        var shown = false;
+        setInterval(function () {
+            var now = false;
+            try {
+                var model = window.sc && sc.model, msg = window.sc && sc.message;
+                now = !!((model && model.isCutscene && model.isCutscene()) ||
+                    (msg && (msg.blocking || (msg.isSideMessageVisible && msg.isSideMessageVisible()))));
+            } catch (e) { now = false; }
+            if (now === shown) return;
+            shown = now;
+            try { window.PortBridge.gameScene(now); } catch (e) { /* nothing to do */ }
+        }, 250);
     })();
 
     window.require = function (name) {

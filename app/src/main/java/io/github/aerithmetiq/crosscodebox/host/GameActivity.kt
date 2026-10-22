@@ -361,6 +361,9 @@ class GameActivity : Activity() {
                 port.onShaderSelfTestDone = { runOnUiThread { if (!isFinishing) showDiagnostics() } }
                 /* CrossCodeBox: an achievement the game awarded goes to the launcher's process, which
                  * holds the Steam login (see AchievementService). */
+                if (prefs.getBoolean(GameSettings.KEY_HIDE_IN_SCENES, GameSettings.HIDE_IN_SCENES_DEFAULT)) {
+                    port.onGameScene = { showing -> runOnUiThread { padView?.sceneHides = showing } }
+                }
                 if (prefs.getBoolean(GameSettings.KEY_VIBRATE, GameSettings.VIBRATE_DEFAULT)) {
                     port.onVibrate = { ms, strength -> shake.vibrate(ms, strength) }
                 }
@@ -402,6 +405,7 @@ class GameActivity : Activity() {
             dynamicSticks = this@GameActivity.dynamicSticks
             alwaysSprint = prefs.getBoolean(GameSettings.KEY_ALWAYS_SPRINT, GameSettings.ALWAYS_SPRINT_DEFAULT)
             dashOnTap = prefs.getBoolean(GameSettings.KEY_DASH_ON_TAP, GameSettings.DASH_ON_TAP_DEFAULT)
+            transparency = prefs.getInt(GameSettings.KEY_TOUCH_TRANSPARENCY, GameSettings.TOUCH_TRANSPARENCY_DEFAULT)
             layout = padLayoutStore?.load() ?: PadLayout()
             onToggle = { prefs.edit().putBoolean(KEY_PAD, it).apply() }
             onLayoutChanged = { padLayoutStore?.save(it) }

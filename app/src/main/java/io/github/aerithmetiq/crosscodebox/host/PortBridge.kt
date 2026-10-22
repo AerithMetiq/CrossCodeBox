@@ -1,7 +1,8 @@
 /*
  * From alabaster-android (https://github.com/moronigranja/alabaster-android), commit f1cedd5.
  * MIT License, Copyright (c) 2026 Moroni Granja. Changed: the package name, and CrossCodeBox's
- * [unlockAchievement] (an achievement the game awarded) and [vibrate] (a screen shake).
+ * [unlockAchievement] (an achievement the game awarded), [vibrate] (a screen shake) and [gameScene]
+ * (a cutscene, conversation or Direct Link began or ended).
  */
 package io.github.aerithmetiq.crosscodebox.host
 
@@ -40,6 +41,18 @@ class PortBridge(
      * Called on the JavaBridge thread, so it must return quickly.
      */
     var onAchievement: ((String) -> Unit)? = null
+
+    /** CrossCodeBox: set by the owner to hear of cutscenes; see [gameScene]. */
+    var onGameScene: ((Boolean) -> Unit)? = null
+
+    /**
+     * CrossCodeBox: the game started ([showing] true) or ended a cutscene, a conversation or a Direct
+     * Link. Sent by the shim only when it changes. Called on the JavaBridge thread.
+     */
+    @JavascriptInterface
+    fun gameScene(showing: Boolean) {
+        onGameScene?.invoke(showing)
+    }
 
     /** CrossCodeBox: set by the owner to vibrate for a screen shake; see [vibrate]. */
     var onVibrate: ((Int, Float) -> Unit)? = null

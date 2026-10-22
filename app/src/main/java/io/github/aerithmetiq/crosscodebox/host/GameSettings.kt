@@ -38,6 +38,12 @@ object GameSettings {
     const val DASH_ON_TAP_DEFAULT = false
     const val KEY_VIBRATE = "vibrate_on_shake"
     const val VIBRATE_DEFAULT = true
+    /** Hide the touch controls in cutscenes, conversations and Direct Links. */
+    const val KEY_HIDE_IN_SCENES = "hide_touch_in_scenes"
+    const val HIDE_IN_SCENES_DEFAULT = true
+    /** How see-through the touch controls are, 0 (solid) to 100 (invisible). */
+    const val KEY_TOUCH_TRANSPARENCY = "touch_transparency"
+    const val TOUCH_TRANSPARENCY_DEFAULT = 0
 
     /** Whether the frame rate is capped, and at what (see [FpsLimit]). */
     const val KEY_LIMIT_FPS = "limit_fps"
