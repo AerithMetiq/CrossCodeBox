@@ -55,10 +55,10 @@ class SettingsActivity : AppCompatActivity() {
             addView(
                 Screens.body(
                     ctx,
-                    "Off: achievements stay in the game. On: each achievement the game awards is unlocked " +
-                        "on your Steam account, and the ones your save already holds are added the next time " +
-                        "it loads. Earned offline, they go up once Steam can be reached. Nothing is ever " +
-                        "removed. Steam diagnostics lists what Steam has.",
+                    "On (the default): each achievement the game awards is unlocked on your Steam account, " +
+                        "and the ones your save already holds are added the next time it loads. Earned " +
+                        "offline, they go up once Steam can be reached. Nothing is ever removed. Off: they " +
+                        "stay in the game. Steam diagnostics lists what Steam has.",
                     topDp = 0,
                 )
             )

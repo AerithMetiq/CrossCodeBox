@@ -43,8 +43,9 @@ art (hard rule 2). The game host is alabaster-android's, which already had a Cro
    `assets/cc-shim.js`.
 4. **Secrets stay secret.** Never log or display the Steam password, refresh token or Steam Guard data.
    Diagnostic reports leave out the account name and Steam Cloud machine names.
-5. **Read-only by default against Steam.** Anything that writes to Steam (Cloud uploads, playing status,
-   achievements) must be deliberate, and testable first in a dry-run or diagnostics form.
+5. **Read-only by default against Steam.** Anything that writes to Steam (Cloud uploads, playing status)
+   must be deliberate, and testable first in a dry-run or diagnostics form. **Exception, AerithMetiq's
+   call (2026-10-21): achievements are on by default**, since they only add what the game awarded.
 
 ## Keeping the two apps in step
 
@@ -111,8 +112,9 @@ belongs in the other. What differs here, deliberately:
   and the `ClientStoreUserStatsResponse` is caught by a small `ClientMsgHandler`. Then the stats are
   read again and every name must show as unlocked. A failure keeps the queue; the launcher's
   `onResume` retries.
-- **Writes to Steam**: off by default (`GameFiles.steamAchievements`, Settings → Steam). With it off the
-  service drops the names; the record still shows `achievement awarded: …` lines. The dry run is
+- **Writes to Steam**: **on by default** at AerithMetiq's request (`GameFiles.steamAchievements`,
+  Settings → Steam turns it off). With it off the service drops the names; the record still shows
+  `achievement awarded: …` lines. The dry run is
   Settings → Steam diagnostics, which lists every achievement and whether Steam has it.
 - Unknown: whether Steam accepts a stats change from a session that is not "in game" (no
   `notifyGamesPlayed`). If the store is refused, try it in the playing-status session.

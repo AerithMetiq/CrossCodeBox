@@ -12,8 +12,8 @@ import io.github.aerithmetiq.crosscodebox.steam.SteamSession
 import java.io.File
 
 /**
- * Unlocks the game's Steam achievements. **Writes to Steam**, so it only acts while the user has
- * achievements turned on (Settings, off by default).
+ * Unlocks the game's Steam achievements. **Writes to Steam**, and only acts while achievements are
+ * turned on (Settings; on by default).
  *
  * The game reports an achievement through greenworks (`cc-shim.js`), and the game's process hands the
  * name here ([unlock]); this service runs in the launcher's process, which holds the Steam login. Names

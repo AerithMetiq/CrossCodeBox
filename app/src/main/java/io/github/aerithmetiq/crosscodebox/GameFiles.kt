@@ -85,10 +85,11 @@ object GameFiles {
     fun setPlayingStatus(context: Context, on: Boolean) = prefs(context).edit().putBoolean(KEY_PLAYING, on).apply()
 
     /**
-     * Whether the game's achievements are unlocked on Steam as it awards them. Off until the user turns
-     * it on in Settings: it writes to Steam.
+     * Whether the game's achievements are unlocked on Steam as it awards them. It writes to Steam, but
+     * is **on** until the user turns it off in Settings: AerithMetiq's call (2026-10-21), since it only
+     * ever adds what the game itself awarded.
      */
-    fun steamAchievements(context: Context): Boolean = prefs(context).getBoolean(KEY_ACHIEVEMENTS, false)
+    fun steamAchievements(context: Context): Boolean = prefs(context).getBoolean(KEY_ACHIEVEMENTS, true)
 
     fun setSteamAchievements(context: Context, on: Boolean) = prefs(context).edit().putBoolean(KEY_ACHIEVEMENTS, on).apply()
 
