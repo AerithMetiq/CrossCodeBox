@@ -224,6 +224,16 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   CCLoader3's in-game Mods tab. CCModManager (GPL-3.0, not shipped) installs mods by writing files,
   which the shim's `fs` refuses outside the saves folder, so it would not work as is.
 - Mods change saves like the game does, and those sync to Steam Cloud; achievements stay on.
+- **Mod browser** (`ModBrowserActivity`, `ModDb`, 2026-10-22; Settings → Mods → Browse mods): reads
+  CCModDB's `npDatabase.min.json` (`stable` branch; cached in `cacheDir` for when GitHub cannot be
+  reached), lists the mods with a search box, and installs one with the dependencies it lacks
+  (`ModDb.plan`: dependencies first; CCLoader3's own packages and the game's extensions are not
+  installed). Each archive comes from the mod's own release URL (HTTPS only, redirects followed), is
+  checked against the database's SHA-256, and is unpacked into `assets/mods/<id>/` from the
+  database's `source` folder (`Mods.installArchive`; a `.ccmod` is unpacked too). Left out of the list:
+  CCLoader v2 and its base libraries (tag `base`), and CCModManager. Checked on the Nova: Boki Colors
+  (a `.ccmod`, which pulled element-hair) and clean-title-screen (a `.zip` with its mod in a folder)
+  installed, and with mods on all three loaded and Lea was gone from the title screen; then removed.
 
 ## The extension double load (fixed 2026-10-21)
 

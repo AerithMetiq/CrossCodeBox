@@ -271,6 +271,12 @@ class SettingsActivity : AppCompatActivity() {
         }, "mod-install").start()
     }
 
+    override fun onResume() {
+        super.onResume()
+        /* Back from the mod browser: the count may have changed. */
+        modsStatus?.text = modsCount()
+    }
+
     private fun modsCount(): String = Mods.list(this).size.let { n ->
         if (n == 0) "No mods are installed." else "$n ${if (n == 1) "mod is" else "mods are"} installed."
     }
@@ -290,7 +296,8 @@ class SettingsActivity : AppCompatActivity() {
             Screens.body(
                 ctx,
                 "Off by default. On: the game starts through CCLoader3, the community mod loader, which loads " +
-                    "the mods you add here (.ccmod or .zip files). The game's own files are not changed, and " +
+                    "the mods you install here: from the mod browser (CCModDB, the community's mod list), or a " +
+                    ".ccmod or .zip file you have. The game's own files are not changed, and " +
                     "\"Verify game files\" leaves your mods alone. Mods can change your saves, which then sync " +
                     "to Steam Cloud like any other; keep the backups in mind. Mods are made by other people: " +
                     "add only ones you trust. CCLoader3 adds a Mods tab to the game's options to switch mods.",
@@ -300,7 +307,8 @@ class SettingsActivity : AppCompatActivity() {
         val status = Screens.body(ctx, modsCount())
         modsStatus = status
         page.addView(status)
-        val add = Screens.outlined(ctx, "Add a mod") { pickMod.launch(arrayOf("*/*")) }
+        val browse = Screens.outlined(ctx, "Browse mods") { startActivity(android.content.Intent(ctx, ModBrowserActivity::class.java)) }
+        val add = Screens.outlined(ctx, "Add a file") { pickMod.launch(arrayOf("*/*")) }
         val remove = Screens.outlined(ctx, "Remove a mod") {
             val names = Mods.list(ctx)
             if (names.isEmpty()) {
@@ -323,7 +331,7 @@ class SettingsActivity : AppCompatActivity() {
                 .setNegativeButton("Cancel", null)
                 .show()
         }
-        page.addView(Screens.row(ctx, 8, add, remove))
+        page.addView(Screens.row(ctx, 8, browse, add, remove))
     }
 
     private fun showNotices() {

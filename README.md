@@ -51,7 +51,9 @@ title screen on a phone.
 - **Steam achievements**, unlocked as the game awards them (on by default; Settings → Steam).
 - **Mods** (optional, off by default): CrossCode starts through
   [CCLoader3](https://github.com/CCDirectLink/CCLoader3), the community mod loader, with the mods you
-  add in Settings → Mods (`.ccmod` or `.zip`). Verifying the game leaves them alone.
+  install in Settings → Mods: from the mod browser, which lists the mods in
+  [CCModDB](https://github.com/CCDirectLink/CCModDB) and installs one with what it depends on, or
+  from a `.ccmod` or `.zip` file. Verifying the game leaves them alone.
 - **Controller-first launcher**: every control is reachable with a D-pad, with a clear focus ring.
 - **Playing status** (optional, off by default): show as playing CrossCode on Steam.
 - **Steam diagnostics** (Settings): a read-only report of CrossCode's depots, Steam Cloud rules and your

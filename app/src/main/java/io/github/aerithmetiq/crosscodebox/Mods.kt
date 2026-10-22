@@ -88,6 +88,62 @@ object Mods {
         }
     }
 
+    /**
+     * Installs the mod in the archive [file] (a `.ccmod` or `.zip` downloaded from the mod browser) as
+     * the folder [name] in [MODS_DIR], replacing an older copy. [source] is the folder inside the archive
+     * that holds the mod ("" for the top); when the archive says otherwise, its own layout is used.
+     */
+    fun installArchive(context: Context, file: File, name: String, source: String): String {
+        val mods = dir(context).apply { mkdirs() }
+        try {
+            ZipFile(file).use { zip ->
+                val names = zip.entries().asSequence().filter { !it.isDirectory }.map { it.name }.toList()
+                val prefix = if (source.isNotEmpty() && names.any { it.trimStart('/').startsWith("$source/") }) "$source/"
+                    else layout(names)?.prefix ?: throw IOException("the download holds no ccmod.json or package.json")
+                val folder = safeName(name)
+                val target = File(mods, folder)
+                /* An older copy of the same mod, as a folder or a .ccmod file, is replaced. */
+                target.deleteRecursively()
+                File(mods, "$folder.ccmod").delete()
+                for (entry in zip.entries()) {
+                    if (entry.isDirectory) continue
+                    val rel = target(entry.name, prefix) ?: continue
+                    val out = File(target, rel)
+                    out.parentFile?.mkdirs()
+                    zip.getInputStream(entry).use { input -> out.outputStream().use { input.copyTo(it) } }
+                }
+                return folder
+            }
+        } catch (e: java.util.zip.ZipException) {
+            throw IOException("the download is not a zip or .ccmod file", e)
+        }
+    }
+
+    /**
+     * The installed mods' ids and versions, read from each one's `ccmod.json` (or an older mod's
+     * `package.json`), for the mod browser. A `.ccmod` file is read inside.
+     */
+    fun installedVersions(context: Context): Map<String, String> {
+        val out = HashMap<String, String>()
+        for (f in dir(context).listFiles().orEmpty()) {
+            val text = runCatching {
+                when {
+                    f.isDirectory -> MANIFESTS.map { File(f, it) }.firstOrNull { it.isFile }?.readText()
+                    f.name.endsWith(".ccmod") -> ZipFile(f).use { z ->
+                        MANIFESTS.firstNotNullOfOrNull { m -> z.getEntry(m)?.let { e -> z.getInputStream(e).use { it.readBytes().toString(Charsets.UTF_8) } } }
+                    }
+                    else -> null
+                }
+            }.getOrNull() ?: continue
+            runCatching {
+                val json = org.json.JSONObject(text)
+                val id = json.optString("id").ifBlank { json.optString("name") }
+                if (id.isNotBlank()) out[id] = json.optString("version")
+            }
+        }
+        return out
+    }
+
     /** Where a mod's files sit inside its zip: at the top ([prefix] ""), or in one folder ([folder]). */
     data class Layout(val prefix: String, val folder: String?)
 
