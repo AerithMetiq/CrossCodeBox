@@ -44,6 +44,24 @@ class SettingsActivity : AppCompatActivity() {
                     topDp = 0,
                 )
             )
+            addView(CheckBox(ctx).apply {
+                text = "Unlock my CrossCode achievements on Steam"
+                textSize = 15f
+                setTextColor(getColor(R.color.text_primary))
+                buttonTintList = ColorStateList.valueOf(getColor(R.color.accent))
+                isChecked = GameFiles.steamAchievements(ctx)
+                setOnCheckedChangeListener { _, on -> GameFiles.setSteamAchievements(ctx, on) }
+            })
+            addView(
+                Screens.body(
+                    ctx,
+                    "Off: achievements stay in the game. On: each achievement the game awards is unlocked " +
+                        "on your Steam account, and the ones your save already holds are added the next time " +
+                        "it loads. Earned offline, they go up once Steam can be reached. Nothing is ever " +
+                        "removed. Steam diagnostics lists what Steam has.",
+                    topDp = 0,
+                )
+            )
 
             addView(Screens.body(ctx, "Steam Cloud saves", topDp = 24).apply { textSize = 16f; setTextColor(getColor(R.color.text_primary)) })
             addView(

@@ -68,7 +68,7 @@ belongs in the other. What differs here, deliberately:
 |---|---|---|
 | 1 | Launcher, sign-in, download of `assets/`, the host with `cc-shim.js` | **runs on the Nova** (2026-10-21): download 697 MiB / 4 722 files in 70 s from depot 368341 (the Windows depot; the shared 916190 does not hold the entry page), boot to the title screen with no missing files, `platform=Desktop`, canvas 1136x640, canvas 2D (`gl=none`). Gameplay, audio and pad mapping not yet tried |
 | 2 | Steam Cloud saves for `cc.save` | mapping set 2026-10-21 from the Nova's diagnostics (see CrossCode facts). "Check now" listed `cc.save: would DOWNLOAD`; PLAY then downloaded it (checksum matched). Upload not yet run (off by default) |
-| 3 | Steam achievements | planned: `cc-shim.js` stubs greenworks (`activateAchievement: noop`); route it through `PortBridge` to the app and on to Steam's user stats, opt-in like the playing status |
+| 3 | Steam achievements | written 2026-10-21, unit-tested, **not yet run on a device**. See Achievements below |
 | - | Match CrossDroid's look | from screenshots of the running CrossDroid on the Nova (hard rule 2) |
 
 ## CrossCode facts (from alabaster-android's README and host profile)
@@ -94,6 +94,28 @@ belongs in the other. What differs here, deliberately:
   the token themselves, with no path prefix: `%WinAppDataLocal%cc.save` (AerithMetiq's Cloud held just
   that file, 129.3 KiB). `CloudSaves` maps `%WinAppDataLocal%<name>` to `userdata/Default/<name>` and
   syncs only top-level `cc.sav*` files (`CloudSaves.isSaveName`).
+
+## Achievements
+
+- CrossCode reports achievements through greenworks. `cc-shim.js` reports NW.js 0.86.0, so the engine
+  computes `ig.nwjsVersion[1]` = 8600 and loads the shim's greenworks object as its NW.js 0.35+ build;
+  `ig.greenworks.isActive()` is then true. The game calls `activateAchievement(steamName)` when a trophy
+  triggers, and for every trophy the save holds each time global data loads (so a boot re-reports
+  them all: that is the catch-up path). The shim passes the name to `PortBridge.unlockAchievement`;
+  `clearAchievement` stays a no-op (nothing is ever removed from Steam).
+- `GameActivity` hands the name to `AchievementService` (launcher process, which holds the login). It
+  queues names in `achievements-queue.txt`, waits 3 s after the last one, opens a
+  `Purpose.ACHIEVEMENTS` session and calls `SteamAchievements.unlock`: `getUserStats` (JavaSteam) for
+  the schema, stat values and `crc_stats`; `Achievements.toStore` sets only the missing bits; the
+  change goes as `ClientStoreUserStats2` (JavaSteam cannot store stats, so the message is built here)
+  and the `ClientStoreUserStatsResponse` is caught by a small `ClientMsgHandler`. Then the stats are
+  read again and every name must show as unlocked. A failure keeps the queue; the launcher's
+  `onResume` retries.
+- **Writes to Steam**: off by default (`GameFiles.steamAchievements`, Settings → Steam). With it off the
+  service drops the names; the record still shows `achievement awarded: …` lines. The dry run is
+  Settings → Steam diagnostics, which lists every achievement and whether Steam has it.
+- Unknown: whether Steam accepts a stats change from a session that is not "in game" (no
+  `notifyGamesPlayed`). If the store is refused, try it in the playing-status session.
 
 ## Build and test
 

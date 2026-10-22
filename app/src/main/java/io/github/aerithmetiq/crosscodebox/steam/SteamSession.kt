@@ -55,7 +55,7 @@ class SteamBusyException(result: EResult) : IOException("Steam is busy ($result)
  */
 class SteamSession(private val purpose: Purpose = Purpose.LAUNCHER) : Closeable {
 
-    enum class Purpose { LAUNCHER, DOWNLOAD, SAVES, PLAYING, DIAGNOSTICS }
+    enum class Purpose { LAUNCHER, DOWNLOAD, SAVES, PLAYING, DIAGNOSTICS, ACHIEVEMENTS }
 
     val client = if (purpose == Purpose.DOWNLOAD) SteamClient(downloadConfiguration()) else SteamClient()
     private val manager = CallbackManager(client)

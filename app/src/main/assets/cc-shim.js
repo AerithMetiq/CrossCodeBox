@@ -4,7 +4,8 @@
  * its sibling ada-shim.js: the side menu's three settings are read from the app twice a second instead
  * of on every frame (see pollGamepads); the frame-rate gate keeps a running deadline, so a rate the
  * screen cannot divide evenly averages that rate instead of dropping to the next one down; and the
- * pad's JSON is parsed only when the app sends a different one.
+ * pad's JSON is parsed only when the app sends a different one. CrossCodeBox's own: greenworks'
+ * activateAchievement passes the achievement to the app, which can unlock it on Steam.
  */
 /*
  * CrossCode — Android WebView shim (this host's CrossCode profile).
@@ -336,10 +337,19 @@
             work_area: { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight }, scaleFactor: 1 }] }
     };
 
+    /* CrossCodeBox: the engine loads this object as its greenworks (the NW.js 0.35+ build: the version
+     * above makes `ig.nwjsVersion[1]` 8600), and while it is there `ig.greenworks.isActive()` is true.
+     * So every trophy the game awards, and every one a save holds each time it is loaded, arrives in
+     * activateAchievement with its Steam name. It goes to the app, which unlocks it on Steam when the
+     * user has turned that on (AchievementService). Nothing is ever cleared. */
     var greenworks = {
         init: function () { return false; }, initAPI: function () { return false; },
         isActive: function () { return false; }, isSteamRunning: function () { return false; },
-        activateAchievement: noop, clearAchievement: noop, activateGameOverlayToStore: noop
+        activateAchievement: function (name, ok) {
+            var taken = call(function (b) { return b.unlockAchievement(String(name)); }, false) === true;
+            if (taken && typeof ok === "function") setTimeout(ok, 0);
+        },
+        clearAchievement: noop, activateGameOverlayToStore: noop
     };
 
     window.require = function (name) {

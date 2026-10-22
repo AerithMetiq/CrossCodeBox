@@ -356,6 +356,12 @@ class GameActivity : Activity() {
                 /* The page's shader self-test finishes asynchronously; show the record again once it
                  * carries the verdicts (FINDINGS §22.11). */
                 port.onShaderSelfTestDone = { runOnUiThread { if (!isFinishing) showDiagnostics() } }
+                /* CrossCodeBox: an achievement the game awarded goes to the launcher's process, which
+                 * holds the Steam login (see AchievementService). */
+                port.onAchievement = { name ->
+                    diag.line("achievement awarded: $name")
+                    io.github.aerithmetiq.crosscodebox.AchievementService.unlock(applicationContext, name)
+                }
             },
             BRIDGE_NAME
         )

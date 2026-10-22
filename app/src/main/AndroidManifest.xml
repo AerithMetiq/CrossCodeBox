@@ -56,6 +56,11 @@
             android:foregroundServiceType="dataSync" />
 
         <!-- Shows the account as playing on Steam while the game runs (off unless turned on). -->
+        <!-- Unlocks the game's Steam achievements as it awards them (off unless turned on). -->
+        <service
+            android:name=".AchievementService"
+            android:exported="false" />
+
         <service
             android:name=".PlayingService"
             android:exported="false" />

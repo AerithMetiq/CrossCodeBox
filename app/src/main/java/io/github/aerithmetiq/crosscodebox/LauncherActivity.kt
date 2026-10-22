@@ -170,6 +170,7 @@ class LauncherActivity : AppCompatActivity() {
         showSyncStatus()
         /* The game has been left (or was never started): the playing status ends with it. */
         PlayingService.stop(this)
+        AchievementService.retry(this)
         syncAfterGame()
     }
 

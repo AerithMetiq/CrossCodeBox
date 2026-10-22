@@ -1,6 +1,7 @@
 /*
  * From alabaster-android (https://github.com/moronigranja/alabaster-android), commit f1cedd5.
- * MIT License, Copyright (c) 2026 Moroni Granja. Only the package name is changed.
+ * MIT License, Copyright (c) 2026 Moroni Granja. Changed: the package name, and [unlockAchievement],
+ * CrossCodeBox's way for the shim's greenworks stand-in to pass on an achievement the game awarded.
  */
 package io.github.aerithmetiq.crosscodebox.host
 
@@ -33,6 +34,21 @@ class PortBridge(
      * JavaBridge thread, so the owner posts to the UI thread.
      */
     var onShaderSelfTestDone: ((String) -> Unit)? = null
+
+    /**
+     * CrossCodeBox: set by the owner to receive an achievement the game awarded, by its Steam name.
+     * Called on the JavaBridge thread, so it must return quickly.
+     */
+    var onAchievement: ((String) -> Unit)? = null
+
+    /** CrossCodeBox: the game awarded an achievement (greenworks' `activateAchievement`). False when nobody takes it. */
+    @JavascriptInterface
+    fun unlockAchievement(name: String): Boolean {
+        val take = onAchievement ?: return false
+        if (name.isBlank() || name.length > 128 || name.any { it < ' ' }) return false
+        take(name)
+        return true
+    }
 
     @JavascriptInterface
     fun getGamepadJson(): String {
