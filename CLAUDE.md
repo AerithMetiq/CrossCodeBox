@@ -60,7 +60,12 @@ belongs in the other. What differs here, deliberately:
 - `assets/cc-shim.js` instead of `ada-shim.js`, with the same three changes AlabasterDawnBox made to its
   shim (settings read every 30th poll, running-deadline frame gate, pad JSON parsed only on change).
 - Settings has no Resolution button (that one sets the terra engine's stored option).
-- Look: cyan accent `#40C4FF`, "CROSSCODE / BOX" wordmark, original icon; `Screens.statusBar`.
+- Look, matched to the running CrossDroid (screenshots, 2026-10-21): cyan accent `#40C4FF`, a dark navy
+  status bar with light icons (`Screens.statusBar`, `@color/status_bar`), the game's `title-bg.png`
+  behind the launcher, the game's logo (the top band of `media/gui/title-logo-new.png`, cropped and
+  its black made see-through at runtime by `TitleArt`) in place of the "CROSSCODE / BOX" wordmark,
+  the "STEAM CLOUD LAUNCHER" line in cyan, and a green dot before "Signed in as" while Steam answers.
+  Both pictures are drawn without smoothing. The original icon stays.
 - The diagnostics probe CrossCode only.
 
 ## Status
@@ -69,7 +74,7 @@ belongs in the other. What differs here, deliberately:
 |---|---|---|
 | 1 | Launcher, sign-in, download of `assets/`, the host with `cc-shim.js` | **runs on the Nova** (2026-10-21): download 697 MiB / 4 722 files in 70 s from depot 368341 (the Windows depot; the shared 916190 does not hold the entry page), boot to the title screen with no missing files, `platform=Desktop`, canvas 1136x640, canvas 2D (`gl=none`). Gameplay, audio and pad mapping not yet tried |
 | 2 | Steam Cloud saves for `cc.save` | mapping set 2026-10-21 from the Nova's diagnostics (see CrossCode facts). "Check now" listed `cc.save: would DOWNLOAD`; PLAY then downloaded it (checksum matched). Upload not yet run (off by default) |
-| 3 | Steam achievements | written 2026-10-21, unit-tested, **not yet run on a device**. See Achievements below |
+| 3 | Steam achievements | on the Nova (2026-10-21): the read works ("1 of 86 unlocked on Steam"), and at boot the game reported the save's one trophy, which Steam already had, so nothing was stored. **An actual unlock (the store) has not run yet**: it needs a trophy Steam does not have. See Achievements below |
 | - | Match CrossDroid's look | from screenshots of the running CrossDroid on the Nova (hard rule 2) |
 
 ## CrossCode facts (from alabaster-android's README and host profile)
@@ -116,8 +121,14 @@ belongs in the other. What differs here, deliberately:
   Settings → Steam turns it off). With it off the service drops the names; the record still shows
   `achievement awarded: …` lines. The dry run is
   Settings → Steam diagnostics, which lists every achievement and whether Steam has it.
-- Unknown: whether Steam accepts a stats change from a session that is not "in game" (no
-  `notifyGamesPlayed`). If the store is refused, try it in the playing-status session.
+- Found on the Nova: JavaSteam's `getUserStats` leaves `schema_local_version` at 0 and Steam then sends
+  **no schema**, so the request is built here with -1. CrossCode's schema (60 KB) has three
+  ACHIEVEMENTS stats (31, 32, 23 bits) whose bit entries are keyed by the bit number with no `bit`
+  field (`Achievements.bits` reads the key; JavaSteam's own `getExpandedAchievements` would miss them).
+  Steam dropped the connection twice right as the app started, mid-read; the retries cover that.
+- While storing, the session tells Steam it runs the game (`SteamSession.runningGame`, games played
+  only, no persona change) and clears it after: Steam's own client changes stats only in game. Not
+  yet proven needed, because no store has run.
 
 ## Build and test
 
@@ -185,11 +196,12 @@ be described as untested until it has run on one.
 
 ## UI conventions
 
-- **The status bar is the accent colour with dark icons on every launcher screen**: call
-  `Screens.statusBar(this)` after `setContentView`. It lays the window out edge to edge and draws
-  an accent-coloured strip the height of the status bar, because Android 15+ ignores `statusBarColor`.
+- **The status bar is dark navy with light icons on every launcher screen**: call
+  `Screens.statusBar(this)` after `setContentView`. It lays the window out edge to edge and draws a
+  strip the height of the status bar, because Android 15+ ignores `statusBarColor`.
 - Match the launcher: dark gradient (`launcher_bg`), one accent colour (`@color/accent`, cyan),
-  `text_primary` / `text_secondary`, the serif "CROSSCODE / BOX" wordmark.
+  `text_primary` / `text_secondary`, the game's logo (the serif "CROSSCODE / BOX" wordmark until the game
+  is downloaded).
 - **Controller-first:** every control focusable, with the white focus ring; give each screen a sensible
   initial focus.
 - Landscape-first, but nothing may clip on 4:3 handhelds or phones.
