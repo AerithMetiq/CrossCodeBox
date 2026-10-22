@@ -1,0 +1,17 @@
+*.iml
+.gradle/
+.kotlin/
+local.properties
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+keystore.properties
+*.jks
+*.keystore
+
+# Things copied off a device for debugging. Screenshots show game art, which must never be committed.
+/Screenshot_*.png
+/ada-diagnostics*.log

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original mark: a box holding code brackets around a small rhombus. Kept inside the adaptive icon's
+     66dp safe circle (centre 54,54). No game art. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- the box -->
+    <path
+        android:strokeColor="#F4EDE4"
+        android:strokeWidth="3"
+        android:pathData="M41,33 L67,33 A8,8 0,0 1 75,41 L75,67 A8,8 0,0 1 67,75 L41,75 A8,8 0,0 1 33,67 L33,41 A8,8 0,0 1 41,33 Z" />
+
+    <!-- < and > -->
+    <path
+        android:strokeColor="#40C4FF"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="3.5"
+        android:pathData="M47,46 L41,54 L47,62 M61,46 L67,54 L61,62" />
+
+    <!-- the rhombus -->
+    <path
+        android:fillColor="#F4EDE4"
+        android:pathData="M54,49 L59,54 L54,59 L49,54 Z" />
+</vector>
