@@ -66,9 +66,15 @@ belongs in the other. What differs here, deliberately:
   its black made see-through at runtime by `TitleArt`) in place of the "CROSSCODE / BOX" wordmark,
   the "STEAM CLOUD LAUNCHER" line in cyan, and a green dot before "Signed in as" while Steam answers.
   Both pictures are drawn without smoothing. The original icon stays.
-- The diagnostics probe CrossCode only.
+- The diagnostics probe CrossCode only (achievements included, as in AlabasterDawnBox).
 - Mods (`Mods.kt`, CCLoader3): CrossCode only; Alabaster Dawn has no mod loader. `PARITY.md` lists
   every feature and where it stands in each app.
+- **`python3 tools/parity.py`** (2026-10-22, the same file in both repositories) compares every file
+  under `app/src` with the other app's, the names that differ by design replaced, and fails on any
+  difference not recorded in `PARITY.lock.json` (a reason and a fingerprint per file; also the files
+  only one app has). Run it after a change; carry the change over, or run `--accept` (writes both
+  repositories' lock) and replace the TODO reason. It needs both repositories checked out side by side,
+  so it is not part of CI.
 
 ## Status
 

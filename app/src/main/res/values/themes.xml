@@ -8,7 +8,7 @@
         <item name="colorSecondary">@color/accent</item>
         <item name="colorOnSecondary">@color/on_accent</item>
         <item name="android:colorBackground">@color/launcher_bg_bottom</item>
-        <!-- The status bar is the accent colour on every screen: see Screens.statusBar, which draws it. These
+        <!-- The status bar is dark navy on every screen: see Screens.statusBar, which draws it. These
              two are what shows for the moment before a screen has called it. -->
         <item name="android:statusBarColor">@color/accent</item>
         <item name="android:windowLightStatusBar">true</item>

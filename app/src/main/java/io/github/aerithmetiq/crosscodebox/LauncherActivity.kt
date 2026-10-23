@@ -101,8 +101,6 @@ class LauncherActivity : AppCompatActivity() {
     @Volatile private var session: SteamSession? = null
     @Volatile private var leaving = false
     @Volatile private var refreshing = false
-    /** Whether the last start-up logon reached Steam: the green dot before "Signed in as". */
-    @Volatile private var online = false
 
     /** The game download runs in [GameDownloadService]; this is its state, mirrored for the screen. */
     private val downloading get() = GameDownloadState.running
@@ -152,7 +150,7 @@ class LauncherActivity : AppCompatActivity() {
         gameArt = findViewById(R.id.game_art)
         syncStatus = findViewById(R.id.sync_status)
 
-        /* The accent-coloured status bar. The avatar floats in the corner, outside the controls' layout, so it
+        /* The navy status bar. The avatar floats in the corner, outside the controls' layout, so it
          * is moved clear of the bar here. */
         val d = resources.displayMetrics.density
         Screens.statusBar(this) { bars ->
@@ -285,11 +283,14 @@ class LauncherActivity : AppCompatActivity() {
         }
     }
 
+    /** Whether the last start-up logon reached Steam: the green dot before "Signed in as" (as in AlabasterDawnBox). */
+    @Volatile private var online = false
+
     /** "Signed in as <persona>", the name bright and bold against the dim label. */
     private fun accountLine(): CharSequence {
         val name = store.persona ?: store.lastAccount ?: "Steam user"
         return SpannableStringBuilder().apply {
-            /* A green dot while Steam answers, as CrossDroid's launcher has it. */
+            /* A green dot while Steam answers. */
             if (online) {
                 append("● ")
                 setSpan(
@@ -525,8 +526,8 @@ class LauncherActivity : AppCompatActivity() {
             try {
                 s.connect()
                 s.logOn(login)
-                saveProfile(s)
                 online = true
+                saveProfile(s)
                 /* While logged on anyway: is there a newer build of the game? Read-only. */
                 if (GameFiles.installed(this)) {
                     runCatching { steamPublicBuild(s, TheGame.steam.appId) }.getOrNull()
@@ -540,8 +541,8 @@ class LauncherActivity : AppCompatActivity() {
                     setStatus("Your Steam login has expired. Sign in again.")
                 }
             } catch (e: Throwable) {
-                /* Signing out mid-refresh closes this session on purpose; that is not "offline". */
                 online = false
+                /* Signing out mid-refresh closes this session on purpose; that is not "offline". */
                 if (!leaving && store.load() != null) {
                     ui { render() }
                     Log.i(TAG, "profile refresh failed", e)

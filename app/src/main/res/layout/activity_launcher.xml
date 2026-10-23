@@ -8,7 +8,7 @@
     android:layout_height="match_parent"
     android:background="@drawable/launcher_bg">
     <!-- The launcher draws edge to edge on every Android version: the background, the game's art and
-         the scrim fill the whole screen, the accent-coloured status bar strip is drawn over their top edge
+         the scrim fill the whole screen, the navy status bar strip is drawn over their top edge
          (Screens.statusBar), and only the controls' layout below is kept clear of the bars
          (fitsSystemWindows). -->
 
