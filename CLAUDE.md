@@ -145,6 +145,10 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   Settings → Game.
 - AerithMetiq confirmed both working on the Nova (2026-10-21), with touch controls turned on for the
   test (they normally play with them off).
+- **The pad's left half mirrors its right** (`OnScreenPadModel.computeBase`, 2026-10-22, same change
+  in AlabasterDawnBox): D-pad in the corner like the face buttons, the fixed left stick inside it like
+  the right stick, L1/L2 over the D-pad like R1/R2. alabaster-android put the left stick in the corner,
+  outside the D-pad, which AerithMetiq saw as lopsided with dynamic sticks off.
 - **Font glyph widths** (`cc-shim.js`, `exactUnscaledDraws`): `ig.Font._loadMetrics` draws a font's
   PNG unscaled onto a new canvas with smoothing on, reads the bottom row back, and treats any alpha
   above 0 as glyph and alpha 0 as a gap. On the Nova's WebView 109 the glyph edges bled into the gaps

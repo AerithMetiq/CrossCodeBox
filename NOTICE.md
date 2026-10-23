@@ -73,8 +73,8 @@ Reused, each file carrying that notice at its top:
   game and saves are plain files here, not folders picked through Android's storage framework), 
   `SideMenuView.kt` (no game-selection row; it can be driven by a controller; a "Touch controls"
   switch), `OnScreenPadView.kt` (that switch, and an idle timer that is not re-posted on every
-  input event; always sprint, dash on tap, hiding in cutscenes, transparency), `OnScreenPadModel.kt` and its test (with dynamic
-  sticks the D-pad side mirrors the face-button side; always sprint and dash on tap), `PortBridge.kt`
+  input event; always sprint, dash on tap, hiding in cutscenes, transparency), `OnScreenPadModel.kt` and its test (the D-pad side,
+  left stick included, mirrors the face-button side; always sprint and dash on tap), `PortBridge.kt`
   (`unlockAchievement`, `vibrate` and `gameScene`, for CrossCodeBox's achievements, screen-shake
   vibration and cutscene hiding),
   `FpsLimit.kt` and
