@@ -320,5 +320,12 @@ be described as untested until it has run on one.
   is downloaded).
 - **Controller-first:** every control focusable, with the white focus ring; give each screen a sensible
   initial focus.
+- **Back leaves for the app that opened the launcher** (`ReturnTo`, 2026-10-22): the home screen, or a
+  frontend such as ES-DE (its launch intent), never the next task in Android's order. Android's Back
+  on a task's root moves the task back and shows the task under it, which after a switch through
+  recents is another app: with both Box apps open, B in one showed the other and leaving took a
+  second B (the "double B" AerithMetiq reported). The opener is `Activity.referrer`, kept in the
+  `launcher` preferences (`opener`); a start by the app itself keeps it. Checked on the Nova: icon,
+  home, the other app's icon, quick switch back, one B → home screen. Not yet tried from ES-DE.
 - Landscape-first, but nothing may clip on 4:3 handhelds or phones.
 - UI text is plain and direct; say what happened and what to do next.
