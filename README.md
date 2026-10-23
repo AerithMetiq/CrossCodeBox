@@ -95,6 +95,83 @@ touch controls). Nothing is emulated, and the game's files are never changed.
 - Every control works with a D-pad and shows a clear focus ring. B goes back on every screen.
 - Leaving with B returns to whatever opened the app: the home screen, or a frontend such as ES-DE.
 
+## How it compares
+
+### With AlabasterDawnBox
+
+[AlabasterDawnBox](https://github.com/AerithMetiq/AlabasterDawnBox) is the same launcher for
+Alabaster Dawn; CrossCodeBox is built from it, and the two are kept in step (`PARITY.md` lists every
+feature in both). Everything above works the same in both, except:
+
+- **Only in CrossCodeBox:** achievements that unlock (AlabasterDawnBox carries the same support, but
+  Alabaster Dawn has no Steam achievements yet); the DLC your account owns is downloaded with the
+  game; mods; the touch option that fires L1/L2 only on a fresh tap, for dashing; a fix that spaces
+  CrossCode's pixel font right.
+- **Only in AlabasterDawnBox:** a Resolution setting, and the shader fixes mobile GPUs need for
+  Alabaster Dawn's lighting and fog (CrossCode draws on a 2D canvas and needs neither).
+- **Different because the games differ:** vibration follows CrossCode's screen shakes, and Alabaster
+  Dawn's controller rumble. Touch controls step aside in CrossCode's cutscenes, conversations and
+  Direct Links, and in Alabaster Dawn's cutscenes. The touch stick always sprints by default here; in
+  AlabasterDawnBox that option is off by default, because Alabaster Dawn moves by how far the stick is
+  tilted.
+
+### With alabaster-android
+
+[alabaster-android](https://github.com/moronigranja/alabaster-android) runs Alabaster Dawn and
+CrossCode in one app, from a copy of the game you copy to the device and pick with Android's file
+picker. CrossCodeBox's game host and CrossCode shim are its code (from commit `f1cedd5`, see
+`NOTICE.md`). On top of it, CrossCodeBox adds:
+
+- **Steam:** sign-in, the download from Steam (with your DLC) with updates and verifying, Steam Cloud
+  saves with backups and restore, achievements, and the playing status.
+- **A launcher:** controller-first, with the game's settings before it starts, and Back returning to
+  whatever opened the app.
+- **Mods from the community's database:** browse, search and filter CCModDB, install a mod with the
+  mods it needs, update all at once. CCLoader3 ships with the app.
+- **Changes to the game host:**
+  - On a device whose WebView is 32-bit (the Retroid Pocket Nova's), the game runs in the app's own
+    64-bit process, which gives it the fast cores and the memory a 32-bit process cannot have.
+  - Less work per frame: the side menu's settings are read twice a second instead of every frame,
+    and the controller's state is parsed only when it changes.
+  - Frame-rate limits of 30, 45, 60, 90 and 120 (alabaster-android: 20, 30, 40, 45, 60), only those
+    the screen can show, with the screen's refresh rate picked to match. A limit the refresh rate
+    does not divide (45 on 60 Hz) averages out instead of dropping to the next one down.
+  - The side menu pauses the game and is driven by the controller; a held direction repeats.
+  - Back opens the side menu on Android 13, where it did nothing.
+  - Touch controls made for CrossCode: always sprint, dash on a fresh tap, a left side that mirrors
+    the right, a transparency slider, a switch that removes the whole overlay, and hiding in
+    cutscenes, conversations and Direct Links.
+  - Vibration from the game's screen shakes, and the pixel font's letters spaced right.
+
+alabaster-android has things this app does not (at the time of writing): one app for both games; it
+runs a copy you put on the device yourself, with no Steam sign-in; its screens in Spanish and
+Brazilian Portuguese; the community Spanish translation for CrossCode in one tap; switching a mod off
+without removing it; home-screen shortcuts for each game; and a controller fix for the games' PC
+builds.
+
+### With CrossDroid
+
+[CrossDroid](https://github.com/dain98/CrossDroid) by dain98 is a Steam launcher for CrossCode, built
+on CrossAndroid. CrossCodeBox follows its launcher's look and flow but shares none of its code: it is
+a separate code base, built from AlabasterDawnBox and alabaster-android. Both sign in to Steam with a
+password or a QR code, download the game from Steam, bring the save down from Steam Cloud before
+playing and up after, work with a controller, show your Steam name and avatar, and run mods through
+CCLoader3. Going by CrossDroid's README (v2.0.2), CrossCodeBox differs in:
+
+- **Saves:** each sync compares the save with the last version both sides agreed on and asks when
+  both changed (CrossDroid's README describes last-write-wins). Uploads are off until you turn them
+  on, a check shows what a sync would do, and the copies replaced on either side are kept and can be
+  restored.
+- **The download:** only the game's `assets/` folder (about 840 MiB on the device; CrossDroid's README
+  gives about 1.5 GB for the full game), with the DLC you own, in the background, checked against
+  Steam's checksums, with a prompt when Steam has an update.
+- **Steam:** achievements, the playing status, and a diagnostics report.
+- **Mods:** off by default, with a browser for the community's mod database and updates. CrossDroid
+  installs its loader (CCLoader3 v3.3.1-alpha) and cc-font-fix automatically; CrossCodeBox ships
+  CCLoader3 v3.5.2-alpha and fixes the font itself.
+- **Playing:** touch controls with a layout editor, the side menu with its frame-rate limit and
+  readouts, vibration, and the 64-bit renderer for devices with a 32-bit WebView.
+
 ## Performance
 
 The **frame-rate limit** saves heat and battery. Above 60 fps the game does draw new frames, so 90 or
