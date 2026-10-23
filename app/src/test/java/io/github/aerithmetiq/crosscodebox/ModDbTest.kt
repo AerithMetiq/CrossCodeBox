@@ -116,4 +116,25 @@ class ModDbTest {
         })
         assertEquals(2, ModDb.authorList(many).size)
     }
+
+    @Test
+    fun `installed and updates narrow to the installed mods`() {
+        val installed = mapOf("alpha" to "1", "beta" to "0.9")
+        fun ids(show: ModShow) = ModDb.select(many, ModView(sort = ModSort.NAME, show = show), installed).map { it.id }
+        assertEquals(listOf("alpha", "beta", "delta", "gamma"), ids(ModShow.ALL))
+        assertEquals(listOf("alpha", "beta"), ids(ModShow.INSTALLED))
+        assertEquals(listOf("beta"), ids(ModShow.UPDATES))
+    }
+
+    @Test
+    fun `update all installs each mod once, dependencies first`() {
+        val mods = ModDb.parse(json)
+        val boki = mods.first { it.id == "Boki Colors" }
+        val hair = mods.first { it.id == "element-hair" }
+        val (plan, unknown) = ModDb.planAll(listOf(boki, hair), mods, mapOf("Boki Colors" to "1.0.0", "element-hair" to "1.0.0"))
+        assertEquals(listOf("Boki Colors", "element-hair"), plan.map { it.id })
+        assertEquals(listOf("missing-lib"), unknown)
+        val (fresh, _) = ModDb.planAll(listOf(boki), mods, mapOf("Boki Colors" to "1.0.0"))
+        assertEquals("a dependency not installed comes first", listOf("element-hair", "Boki Colors"), fresh.map { it.id })
+    }
 }

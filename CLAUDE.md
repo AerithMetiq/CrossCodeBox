@@ -248,6 +248,10 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   Remembered in the `mod_browser` preferences; a remembered category or author the list no longer has
   is dropped. Titles and descriptions lose CrossCode's text codes (`\i[…]` icons as well as `\c[n]`).
   Checked on the Nova: sort, order, a category, and a title that had icon codes.
+- **Show: all / installed / updates, and Update all** (`ModShow`, `ModDb.hasUpdate`, `ModDb.planAll`,
+  2026-10-22): an update is an installed version that differs from the database's (any difference, as
+  versions follow no one scheme). Update all asks once, listing old → new, and installs each mod once
+  with what it lacks. Unit-tested; on the Nova only seen with nothing installed (no Update all button).
 
 ## The extension double load (fixed 2026-10-21)
 

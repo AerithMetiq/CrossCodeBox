@@ -39,13 +39,24 @@ enum class ModSort(val label: String, val natural: String, val reverse: String) 
     UPDATED("Last updated", "Newest first", "Oldest first"),
 }
 
-/** What the mod browser shows: the search text, the order, and a category and an author to keep to (null: all). */
+/** Which mods the browser lists, by whether they are installed. */
+enum class ModShow(val label: String) {
+    ALL("all"),
+    INSTALLED("installed"),
+    UPDATES("updates"),
+}
+
+/**
+ * What the mod browser shows: the search text, the order, a category and an author to keep to (null:
+ * all), and all mods, the installed ones, or the installed ones with an update.
+ */
 data class ModView(
     val text: String = "",
     val sort: ModSort = ModSort.POPULAR,
     val reversed: Boolean = false,
     val tag: String? = null,
     val author: String? = null,
+    val show: ModShow = ModShow.ALL,
 )
 
 /**
@@ -137,9 +148,14 @@ object ModDb {
      * The mods [view] shows, in its order: matching the search text, in its category and by its author
      * (an author's name compared without case, as the database spells some two ways). Ties go by title.
      */
-    fun select(all: List<ModEntry>, view: ModView): List<ModEntry> {
+    fun select(all: List<ModEntry>, view: ModView, installed: Map<String, String> = emptyMap()): List<ModEntry> {
         val shown = all.filter { mod ->
-            matches(mod, view.text) &&
+            when (view.show) {
+                ModShow.ALL -> true
+                ModShow.INSTALLED -> mod.id in installed
+                ModShow.UPDATES -> hasUpdate(mod, installed)
+            } &&
+                matches(mod, view.text) &&
                 (view.tag == null || view.tag in mod.tags) &&
                 (view.author == null || mod.authors.any { it.equals(view.author, ignoreCase = true) })
         }
@@ -152,6 +168,28 @@ object ModDb {
             ModSort.AUTHOR -> compareBy { it.authors.firstOrNull()?.lowercase() ?: "\uFFFF" }
         }
         return shown.sortedWith((if (view.reversed) order.reversed() else order).then(byTitle))
+    }
+
+    /**
+     * Whether [mod] is installed ([installed]: id to version) at another version than the database's.
+     * Any difference counts, as the browser has always shown it: mod versions do not all follow one scheme.
+     */
+    fun hasUpdate(mod: ModEntry, installed: Map<String, String>): Boolean =
+        installed[mod.id].let { it != null && it != mod.version }
+
+    /**
+     * What "Update all" downloads: each of [targets] with the dependencies it lacks ([plan]), each mod
+     * once, dependencies before the mods that need them; and the dependencies the database lacks.
+     */
+    fun planAll(targets: List<ModEntry>, all: List<ModEntry>, installed: Map<String, String>): Pair<List<ModEntry>, List<String>> {
+        val order = LinkedHashMap<String, ModEntry>()
+        val unknown = LinkedHashSet<String>()
+        for (target in targets) {
+            val (steps, missing) = plan(target, all, installed.keys - target.id)
+            for (step in steps) order.putIfAbsent(step.id, step)
+            unknown.addAll(missing)
+        }
+        return order.values.toList() to unknown.toList()
     }
 
     /** The categories (tags) the mods use, A to Z, each with how many mods have it. */

@@ -41,6 +41,8 @@ class ModBrowserActivity : AppCompatActivity() {
     private lateinit var orderButton: MaterialButton
     private lateinit var categoryButton: MaterialButton
     private lateinit var authorButton: MaterialButton
+    private lateinit var showButton: MaterialButton
+    private lateinit var updateAllButton: MaterialButton
     /** The order and filters; the search text is read from [search] when the list is drawn. */
     private var view = ModView()
     private var mods: List<ModEntry> = emptyList()
@@ -72,6 +74,8 @@ class ModBrowserActivity : AppCompatActivity() {
         orderButton = Screens.outlined(ctx, "") { setView(view.copy(reversed = !view.reversed)) }
         categoryButton = Screens.outlined(ctx, "") { chooseCategory() }
         authorButton = Screens.outlined(ctx, "") { chooseAuthor() }
+        showButton = Screens.outlined(ctx, "") { chooseShow() }
+        updateAllButton = Screens.primary(ctx, "") { updateAll() }
         showView()
         setContentView(Screens.page(ctx) {
             addView(Screens.title(ctx, "Mod browser"))
@@ -88,6 +92,7 @@ class ModBrowserActivity : AppCompatActivity() {
             addView(search)
             addView(Screens.row(ctx, 8, sortButton, orderButton))
             addView(Screens.row(ctx, 8, categoryButton, authorButton))
+            addView(Screens.row(ctx, 8, showButton, updateAllButton))
             addView(list)
         })
         Screens.statusBar(this)
@@ -128,10 +133,17 @@ class ModBrowserActivity : AppCompatActivity() {
 
     private fun render() {
         if (mods.isEmpty()) return
-        val shown = ModDb.select(mods, view.copy(text = search.text.toString()))
+        val shown = ModDb.select(mods, view.copy(text = search.text.toString()), installed)
+        val updates = mods.count { ModDb.hasUpdate(it, installed) }
+        updateAllButton.text = if (updates == 1) "Update 1 mod" else "Update all $updates mods"
+        updateAllButton.visibility = if (updates > 0 && !busy) android.view.View.VISIBLE else android.view.View.GONE
         val modsOn = GameSettings.prefs(this).getBoolean(GameSettings.KEY_MODS, GameSettings.MODS_DEFAULT)
         if (!busy) {
-            val narrowed = listOfNotNull(view.tag?.let { "in $it" }, view.author?.let { "by $it" }).joinToString(" ")
+            val narrowed = listOfNotNull(
+                when (view.show) { ModShow.ALL -> null; ModShow.INSTALLED -> "installed"; ModShow.UPDATES -> "with an update" },
+                view.tag?.let { "in $it" },
+                view.author?.let { "by $it" },
+            ).joinToString(" ")
             status.text = "${shown.size} of ${mods.size} mods${if (narrowed.isEmpty()) "" else " $narrowed"}. ${installed.size} installed." +
                 if (modsOn) "" else " Mods are off: turn them on in Settings → Mods to load them."
         }
@@ -197,6 +209,7 @@ class ModBrowserActivity : AppCompatActivity() {
             reversed = p.getBoolean(KEY_REVERSED, false),
             tag = p.getString(KEY_TAG, null),
             author = p.getString(KEY_AUTHOR, null),
+            show = runCatching { ModShow.valueOf(p.getString(KEY_SHOW, null) ?: "") }.getOrDefault(ModShow.ALL),
         )
     }
 
@@ -208,6 +221,7 @@ class ModBrowserActivity : AppCompatActivity() {
             .putBoolean(KEY_REVERSED, next.reversed)
             .putString(KEY_TAG, next.tag)
             .putString(KEY_AUTHOR, next.author)
+            .putString(KEY_SHOW, next.show.name)
             .apply()
         showView()
         render()
@@ -218,6 +232,7 @@ class ModBrowserActivity : AppCompatActivity() {
         orderButton.text = if (view.reversed) view.sort.reverse else view.sort.natural
         categoryButton.text = "Category: ${view.tag ?: "all"}"
         authorButton.text = "Author: ${view.author ?: "all"}"
+        showButton.text = "Show: ${view.show.label}"
     }
 
     /** A list to pick one from, controller-friendly; [current] is ticked. */
@@ -258,8 +273,35 @@ class ModBrowserActivity : AppCompatActivity() {
         }
     }
 
+    private fun chooseShow() {
+        val choices = ModShow.entries
+        val labels = listOf("All mods", "Installed mods", "Installed mods with an update")
+        pick("Show", labels, choices.indexOf(view.show)) { i -> setView(view.copy(show = choices[i])) }
+    }
+
+    /** Every installed mod with an update, with what they need, after one confirmation. */
+    private fun updateAll() {
+        if (busy) return
+        val targets = mods.filter { ModDb.hasUpdate(it, installed) }
+        if (targets.isEmpty()) return
+        val (plan, unknown) = ModDb.planAll(targets, mods, installed)
+        val extra = plan.filter { step -> targets.none { it.id == step.id } }
+        val message = buildString {
+            append(targets.joinToString("\n") { "${it.title}: ${installed[it.id].orEmpty().ifBlank { "unknown" }} → ${it.version}" })
+            if (extra.isNotEmpty()) append("\n\nAlso installs what they need: ${extra.joinToString { "${it.title} ${it.version}" }}.")
+            if (unknown.isNotEmpty()) append("\n\nThey also need ${unknown.joinToString()}, which the database does not list.")
+        }
+        AlertDialog.Builder(this)
+            .setTitle(if (targets.size == 1) "Update 1 mod" else "Update ${targets.size} mods")
+            .setMessage(message)
+            .setPositiveButton("Update") { _, _ -> install(plan) }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun install(plan: List<ModEntry>) {
         busy = true
+        updateAllButton.visibility = android.view.View.GONE
         Thread({
             val done = ArrayList<String>()
             var error: String? = null
@@ -362,5 +404,6 @@ class ModBrowserActivity : AppCompatActivity() {
         const val KEY_REVERSED = "reversed"
         const val KEY_TAG = "category"
         const val KEY_AUTHOR = "author"
+        const val KEY_SHOW = "show"
     }
 }
