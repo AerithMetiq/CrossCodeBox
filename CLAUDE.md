@@ -67,6 +67,9 @@ belongs in the other. What differs here, deliberately:
   the "STEAM CLOUD LAUNCHER" line in cyan, and a green dot before "Signed in as" while Steam answers.
   Both pictures are drawn without smoothing. The original icon stays.
 - The diagnostics probe CrossCode only (achievements included, as in AlabasterDawnBox).
+- Above 60 fps CrossCode draws new frames, as Alabaster Dawn does (read in `game.compiled.js`,
+  2026-10-22): `ig.system.run` runs once per animation frame and `ig.Timer.step` advances by the real
+  time since the last (`Date.now()`, capped at 1/30 s). A 60 cap saves heat, not wasted frames.
 - Mods (`Mods.kt`, CCLoader3): CrossCode only; Alabaster Dawn has no mod loader. `PARITY.md` lists
   every feature and where it stands in each app.
 - **`python3 tools/parity.py`** (2026-10-22, the same file in both repositories) compares every file
