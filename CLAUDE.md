@@ -86,7 +86,7 @@ belongs in the other. What differs here, deliberately:
   unsigned. Debug builds keep the machine's debug key, so a release APK cannot be installed over a
   debug install (or the reverse) without uninstalling, which deletes the app's local data and the
   downloaded game: back up the saves first. Raise `versionCode` (and `versionName`) for every
-  release; both apps are still 1 / 0.1.0.
+  release (major × 10000 + minor × 100 + patch: 1.0.0 is 10000, released 2026-10-22).
 
 ## Status
 
