@@ -145,6 +145,9 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   Settings → Game.
 - AerithMetiq confirmed both working on the Nova (2026-10-21), with touch controls turned on for the
   test (they normally play with them off).
+- **A held direction repeats in the side menu** (`GameActivity.holdMenuDirection`, 2026-10-22, same in
+  AlabasterDawnBox): D-pad key, hat or stick held moves the selection once, then again after 400 ms
+  and every 120 ms until let go; the system's own key repeats are dropped. Not yet tried on the Nova.
 - **The pad's left half mirrors its right** (`OnScreenPadModel.computeBase`, 2026-10-22, same change
   in AlabasterDawnBox): D-pad in the corner like the face buttons, the fixed left stick inside it like
   the right stick, L1/L2 over the D-pad like R1/R2. alabaster-android put the left stick in the corner,
