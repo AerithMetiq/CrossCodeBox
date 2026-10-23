@@ -17,12 +17,14 @@ class ModDbTest {
               "tags": ["cosmetic"], "authors": "Azure Lazuline",
               "dependencies": { "element-hair": ">=1.0.0", "crosscode": "^1.4.0" }
             },
-            "installation": [ { "type": "zip", "url": "https://example.org/boki.ccmod", "source": "", "hash": { "sha256": "ab12" } } ]
+            "installation": [ { "type": "zip", "url": "https://example.org/boki.ccmod", "source": "", "hash": { "sha256": "ab12" } } ],
+            "stars": 6, "lastUpdateTimestamp": 1778431847000
           },
           "element-hair": {
             "metadataCCMod": { "id": "element-hair", "version": "2.0.0", "title": { "en_US": "Element Hair" },
               "authors": ["A", "B"], "dependencies": { "missing-lib": "*" } },
-            "installation": [ { "type": "zip", "url": "https://example.org/eh.zip", "source": "element-hair-main/" } ]
+            "installation": [ { "type": "zip", "url": "https://example.org/eh.zip", "source": "element-hair-main/" } ],
+            "stars": 2, "lastUpdateTimestamp": 1779000000000
           },
           "ccloader": {
             "metadataCCMod": { "id": "ccloader", "version": "2.26.1", "tags": ["base"] },
@@ -43,9 +45,18 @@ class ModDbTest {
         assertEquals("Change Lea's palette to Boki's.", boki.description)
         assertEquals("ab12", boki.sha256)
         assertEquals("", boki.source)
-        assertEquals("A, B", mods[1].authors)
+        assertEquals(listOf("A", "B"), mods[1].authors)
+        assertEquals("A, B", mods[1].byline)
+        assertEquals(6, mods[0].stars)
+        assertEquals(1778431847000, mods[0].updated)
         assertEquals("element-hair-main", mods[1].source)
         assertEquals(null, mods[1].sha256)
+    }
+
+    @Test
+    fun `text codes are dropped from titles`() {
+        assertEquals("Xenon's Playable Classes", ModDb.text("Xenon's Playable Classes \\i[class-tri] \\i[class-hexa]"))
+        assertEquals("Lea in red", ModDb.text("Lea \\c[1]in red\\c[0]"))
     }
 
     @Test
@@ -65,5 +76,44 @@ class ModDbTest {
         assertTrue(ModDb.matches(boki, "COSMETIC"))
         assertTrue(ModDb.matches(boki, " "))
         assertFalse(ModDb.matches(boki, "speedrun"))
+    }
+
+    private fun mod(id: String, stars: Int = 0, updated: Long = 0, authors: List<String> = emptyList(), tags: List<String> = emptyList()) =
+        ModEntry(id, id, "1", "", authors, tags, "https://example.org/$id.zip", null, "", emptyMap(), null, stars, updated)
+
+    private val many = listOf(
+        mod("beta", stars = 5, updated = 300, authors = listOf("krypek"), tags = listOf("fun", "QoL")),
+        mod("alpha", stars = 9, updated = 100, authors = listOf("Hsifnus"), tags = listOf("fun")),
+        mod("gamma", stars = 5, updated = 200, authors = listOf("hsifnus", "krypek"), tags = listOf("library")),
+        mod("delta", stars = 1, updated = 400),
+    )
+
+    @Test
+    fun `each order has its natural direction, and reversed flips it`() {
+        fun ids(sort: ModSort, reversed: Boolean = false) = ModDb.select(many, ModView(sort = sort, reversed = reversed)).map { it.id }
+        assertEquals("most stars first, ties by title", listOf("alpha", "beta", "gamma", "delta"), ids(ModSort.POPULAR))
+        assertEquals("fewest stars first, ties still by title", listOf("delta", "beta", "gamma", "alpha"), ids(ModSort.POPULAR, true))
+        assertEquals(listOf("alpha", "beta", "delta", "gamma"), ids(ModSort.NAME))
+        assertEquals(listOf("gamma", "delta", "beta", "alpha"), ids(ModSort.NAME, true))
+        assertEquals(listOf("delta", "beta", "gamma", "alpha"), ids(ModSort.UPDATED))
+        assertEquals("by first author, no author last", listOf("alpha", "gamma", "beta", "delta"), ids(ModSort.AUTHOR))
+    }
+
+    @Test
+    fun `a category and an author narrow the list, the author without case`() {
+        fun ids(view: ModView) = ModDb.select(many, view).map { it.id }.toSet()
+        assertEquals(setOf("alpha", "beta"), ids(ModView(tag = "fun")))
+        assertEquals(setOf("alpha", "gamma"), ids(ModView(author = "Hsifnus")))
+        assertEquals(setOf("gamma"), ids(ModView(tag = "library", author = "krypek")))
+        assertEquals(setOf("beta"), ids(ModView(text = "beta", author = "KRYPEK")))
+    }
+
+    @Test
+    fun `categories and authors are listed A to Z with their counts`() {
+        assertEquals(listOf("fun" to 2, "library" to 1, "QoL" to 1), ModDb.categories(many))
+        assertEquals("one Hsifnus, as most of the mods spell it", listOf("Hsifnus" to 2, "krypek" to 2), ModDb.authorList(many).let { list ->
+            list.map { (name, n) -> (if (name.equals("hsifnus", true)) "Hsifnus" else name) to n }
+        })
+        assertEquals(2, ModDb.authorList(many).size)
     }
 }

@@ -147,7 +147,7 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   test (they normally play with them off).
 - **A held direction repeats in the side menu** (`GameActivity.holdMenuDirection`, 2026-10-22, same in
   AlabasterDawnBox): D-pad key, hat or stick held moves the selection once, then again after 400 ms
-  and every 120 ms until let go; the system's own key repeats are dropped. Not yet tried on the Nova.
+  and every 120 ms until let go; the system's own key repeats are dropped. AerithMetiq confirmed it feels right.
 - **The pad's left half mirrors its right** (`OnScreenPadModel.computeBase`, 2026-10-22, same change
   in AlabasterDawnBox): D-pad in the corner like the face buttons, the fixed left stick inside it like
   the right stick, L1/L2 over the D-pad like R1/R2. alabaster-android put the left stick in the corner,
@@ -241,6 +241,13 @@ Settings → Game, read when the game starts (`GameSettings.KEY_ALWAYS_SPRINT`, 
   CCLoader v2 and its base libraries (tag `base`), and CCModManager. Checked on the Nova: Boki Colors
   (a `.ccmod`, which pulled element-hair) and clean-title-screen (a `.zip` with its mod in a folder)
   installed, and with mods on all three loaded and Lea was gone from the title screen; then removed.
+- **Order and filters** (2026-10-22, `ModDb.select`, `ModView`, unit-tested): sort by popularity
+  (GitHub stars, `stars` in the database: CCModDB has no download counts), name, author (first
+  listed) or last update (`lastUpdateTimestamp`), each with a button to flip its direction; keep to
+  one category (the mods' tags) and one author (spellings that differ only in case are one author).
+  Remembered in the `mod_browser` preferences; a remembered category or author the list no longer has
+  is dropped. Titles and descriptions lose CrossCode's text codes (`\i[…]` icons as well as `\c[n]`).
+  Checked on the Nova: sort, order, a category, and a title that had icon codes.
 
 ## The extension double load (fixed 2026-10-21)
 

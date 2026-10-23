@@ -10,15 +10,20 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.button.MaterialButton
 import io.github.aerithmetiq.crosscodebox.host.GameSettings
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.security.MessageDigest
+import java.text.DateFormat
+import java.util.Date
 
 /**
- * Settings → Mods → Browse mods: the mods CCModDB lists ([ModDb]), with a search box. Choosing one
+ * Settings → Mods → Browse mods: the mods CCModDB lists ([ModDb]), with a search box, an order (stars,
+ * name, author, last update, either way round) and a category and an author to keep to, remembered
+ * between visits ([ModView]). Choosing one
  * shows what it is and installs it, with the mods it depends on: each archive is downloaded from the
  * mod's own release, checked against the SHA-256 the database gives, and unpacked into the mods
  * folder ([Mods.installArchive]). Nothing runs until the game starts with mods on.
@@ -32,6 +37,12 @@ class ModBrowserActivity : AppCompatActivity() {
     private lateinit var status: TextView
     private lateinit var list: LinearLayout
     private lateinit var search: EditText
+    private lateinit var sortButton: MaterialButton
+    private lateinit var orderButton: MaterialButton
+    private lateinit var categoryButton: MaterialButton
+    private lateinit var authorButton: MaterialButton
+    /** The order and filters; the search text is read from [search] when the list is drawn. */
+    private var view = ModView()
     private var mods: List<ModEntry> = emptyList()
     private var installed: Map<String, String> = emptyMap()
     @Volatile private var busy = false
@@ -56,6 +67,12 @@ class ModBrowserActivity : AppCompatActivity() {
             })
         }
         val back = Screens.outlined(ctx, "Back") { finish() }
+        view = loadView()
+        sortButton = Screens.outlined(ctx, "") { chooseSort() }
+        orderButton = Screens.outlined(ctx, "") { setView(view.copy(reversed = !view.reversed)) }
+        categoryButton = Screens.outlined(ctx, "") { chooseCategory() }
+        authorButton = Screens.outlined(ctx, "") { chooseAuthor() }
+        showView()
         setContentView(Screens.page(ctx) {
             addView(Screens.title(ctx, "Mod browser"))
             addView(
@@ -69,6 +86,8 @@ class ModBrowserActivity : AppCompatActivity() {
             addView(status)
             addView(Screens.row(ctx, 12, back))
             addView(search)
+            addView(Screens.row(ctx, 8, sortButton, orderButton))
+            addView(Screens.row(ctx, 8, categoryButton, authorButton))
             addView(list)
         })
         Screens.statusBar(this)
@@ -97,6 +116,10 @@ class ModBrowserActivity : AppCompatActivity() {
                     return@runOnUiThread
                 }
                 mods = parsed
+                /* A remembered category or author the list no longer has would show nothing. */
+                if (view.tag != null && ModDb.categories(mods).none { it.first == view.tag }) view = view.copy(tag = null)
+                if (view.author != null && ModDb.authorList(mods).none { it.first.equals(view.author, ignoreCase = true) }) view = view.copy(author = null)
+                showView()
                 render()
                 list.getChildAt(0)?.requestFocus()
             }
@@ -105,10 +128,11 @@ class ModBrowserActivity : AppCompatActivity() {
 
     private fun render() {
         if (mods.isEmpty()) return
-        val shown = mods.filter { ModDb.matches(it, search.text.toString()) }
+        val shown = ModDb.select(mods, view.copy(text = search.text.toString()))
         val modsOn = GameSettings.prefs(this).getBoolean(GameSettings.KEY_MODS, GameSettings.MODS_DEFAULT)
         if (!busy) {
-            status.text = "${shown.size} of ${mods.size} mods. ${installed.size} installed." +
+            val narrowed = listOfNotNull(view.tag?.let { "in $it" }, view.author?.let { "by $it" }).joinToString(" ")
+            status.text = "${shown.size} of ${mods.size} mods${if (narrowed.isEmpty()) "" else " $narrowed"}. ${installed.size} installed." +
                 if (modsOn) "" else " Mods are off: turn them on in Settings → Mods to load them."
         }
         list.removeAllViews()
@@ -118,7 +142,9 @@ class ModBrowserActivity : AppCompatActivity() {
                 mod.version -> "  ·  installed"
                 else -> "  ·  installed $have, update available"
             }
-            val head = "${mod.title}  ${mod.version}" + (if (mod.authors.isNotBlank()) "  ·  ${mod.authors}" else "") + state
+            val updated = if (view.sort == ModSort.UPDATED && mod.updated > 0) "  ·  ${date(mod.updated)}" else ""
+            val head = "${mod.title}  ${mod.version}" + (if (mod.authors.isNotEmpty()) "  ·  ${mod.byline}" else "") +
+                "  ·  ★ ${mod.stars}" + updated + state
             val line = mod.description.lineSequence().firstOrNull().orEmpty().let { if (it.length > 140) it.take(137) + "…" else it }
             val row = Screens.outlined(this, if (line.isEmpty()) head else "$head\n$line") { details(mod) }.apply {
                 gravity = Gravity.START or Gravity.CENTER_VERTICAL
@@ -140,8 +166,10 @@ class ModBrowserActivity : AppCompatActivity() {
         val message = buildString {
             if (mod.description.isNotBlank()) append(mod.description).append("\n\n")
             append("Version ${mod.version}")
-            if (mod.authors.isNotBlank()) append(" by ${mod.authors}")
+            if (mod.authors.isNotEmpty()) append(" by ${mod.byline}")
             append('.')
+            if (mod.updated > 0) append(" Last updated ${date(mod.updated)}.")
+            append(" ★ ${mod.stars} on GitHub.")
             if (mod.tags.isNotEmpty()) append("\nTags: ${mod.tags.joinToString(", ")}")
             mod.repository?.let { append("\n$it") }
             if (have != null) append("\n\nInstalled: version ${have.ifBlank { "unknown" }}.")
@@ -154,6 +182,80 @@ class ModBrowserActivity : AppCompatActivity() {
             .setPositiveButton(if (have == null) "Install" else if (have == mod.version) "Install again" else "Update") { _, _ -> install(plan) }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun date(ms: Long): String = DateFormat.getDateInstance(DateFormat.MEDIUM).format(Date(ms))
+
+    /* ------------------------------------------------------------- order and filters ---- */
+
+    private val viewPrefs get() = getSharedPreferences("mod_browser", MODE_PRIVATE)
+
+    private fun loadView(): ModView {
+        val p = viewPrefs
+        return ModView(
+            sort = runCatching { ModSort.valueOf(p.getString(KEY_SORT, null) ?: "") }.getOrDefault(ModSort.POPULAR),
+            reversed = p.getBoolean(KEY_REVERSED, false),
+            tag = p.getString(KEY_TAG, null),
+            author = p.getString(KEY_AUTHOR, null),
+        )
+    }
+
+    /** Applies, remembers and shows a new order or filter. */
+    private fun setView(next: ModView) {
+        view = next
+        viewPrefs.edit()
+            .putString(KEY_SORT, next.sort.name)
+            .putBoolean(KEY_REVERSED, next.reversed)
+            .putString(KEY_TAG, next.tag)
+            .putString(KEY_AUTHOR, next.author)
+            .apply()
+        showView()
+        render()
+    }
+
+    private fun showView() {
+        sortButton.text = "Sort: ${view.sort.label}"
+        orderButton.text = if (view.reversed) view.sort.reverse else view.sort.natural
+        categoryButton.text = "Category: ${view.tag ?: "all"}"
+        authorButton.text = "Author: ${view.author ?: "all"}"
+    }
+
+    /** A list to pick one from, controller-friendly; [current] is ticked. */
+    private fun pick(title: String, labels: List<String>, current: Int, chosen: (Int) -> Unit) {
+        AlertDialog.Builder(this)
+            .setTitle(title)
+            .setSingleChoiceItems(labels.toTypedArray(), current) { dialog, which ->
+                dialog.dismiss()
+                chosen(which)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    /** A new order starts in its natural direction (most stars, A to Z, newest first). */
+    private fun chooseSort() {
+        val sorts = ModSort.entries
+        pick("Sort by", sorts.map { it.label }, sorts.indexOf(view.sort)) { i ->
+            setView(view.copy(sort = sorts[i], reversed = false))
+        }
+    }
+
+    private fun chooseCategory() {
+        if (mods.isEmpty()) return
+        val tags = ModDb.categories(mods)
+        val current = tags.indexOfFirst { it.first == view.tag } + 1
+        pick("Category", listOf("All categories") + tags.map { "${it.first} (${it.second})" }, current) { i ->
+            setView(view.copy(tag = if (i == 0) null else tags[i - 1].first))
+        }
+    }
+
+    private fun chooseAuthor() {
+        if (mods.isEmpty()) return
+        val authors = ModDb.authorList(mods)
+        val current = authors.indexOfFirst { it.first.equals(view.author, ignoreCase = true) } + 1
+        pick("Author", listOf("All authors") + authors.map { "${it.first} (${it.second})" }, current) { i ->
+            setView(view.copy(author = if (i == 0) null else authors[i - 1].first))
+        }
     }
 
     private fun install(plan: List<ModEntry>) {
@@ -253,5 +355,12 @@ class ModBrowserActivity : AppCompatActivity() {
 
     private fun ui(block: () -> Unit) = runOnUiThread {
         if (!isFinishing && !isDestroyed) block()
+    }
+
+    private companion object {
+        const val KEY_SORT = "sort"
+        const val KEY_REVERSED = "reversed"
+        const val KEY_TAG = "category"
+        const val KEY_AUTHOR = "author"
     }
 }
