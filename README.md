@@ -149,29 +149,6 @@ Brazilian Portuguese; the community Spanish translation for CrossCode in one tap
 without removing it; home-screen shortcuts for each game; and a controller fix for the games' PC
 builds.
 
-### With CrossDroid
-
-[CrossDroid](https://github.com/dain98/CrossDroid) by dain98 is a Steam launcher for CrossCode, built
-on CrossAndroid. CrossCodeBox follows its launcher's look and flow but shares none of its code: it is
-a separate code base, built from AlabasterDawnBox and alabaster-android. Both sign in to Steam with a
-password or a QR code, download the game from Steam, bring the save down from Steam Cloud before
-playing and up after, work with a controller, show your Steam name and avatar, and run mods through
-CCLoader3. Going by CrossDroid's README (v2.0.2), CrossCodeBox differs in:
-
-- **Saves:** each sync compares the save with the last version both sides agreed on and asks when
-  both changed (CrossDroid's README describes last-write-wins). Uploads are off until you turn them
-  on, a check shows what a sync would do, and the copies replaced on either side are kept and can be
-  restored.
-- **The download:** only the game's `assets/` folder (about 840 MiB on the device; CrossDroid's README
-  gives about 1.5 GB for the full game), with the DLC you own, in the background, checked against
-  Steam's checksums, with a prompt when Steam has an update.
-- **Steam:** achievements, the playing status, and a diagnostics report.
-- **Mods:** off by default, with a browser for the community's mod database and updates. CrossDroid
-  installs its loader (CCLoader3 v3.3.1-alpha) and cc-font-fix automatically; CrossCodeBox ships
-  CCLoader3 v3.5.2-alpha and fixes the font itself.
-- **Playing:** touch controls with a layout editor, the side menu with its frame-rate limit and
-  readouts, vibration, and the 64-bit renderer for devices with a 32-bit WebView.
-
 ## Performance
 
 The **frame-rate limit** saves heat and battery. Above 60 fps the game does draw new frames, so 90 or
